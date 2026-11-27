@@ -10,3 +10,4 @@ export * from './preview';
 export * from './inapp';
 export * from './timing';
 export * from './wallet';
+export * from './solanapay';

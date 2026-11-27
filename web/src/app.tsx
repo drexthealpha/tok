@@ -68,6 +68,7 @@ export function App() {
         <nav class="tabs">
           {tab('pay', 'Pay')}
           {tab('chat', 'Chat')}
+          {tab('shop', 'Shop')}
           {tab('wallet', 'Wallet')}
         </nav>
       )}

@@ -185,3 +185,23 @@ describe('run times (part 4)', () => {
     expect(s).toEqual({ runs: 3, median: 1100, slowest: 1500 });
   });
 });
+
+describe('Solana Pay (part 16)', async () => {
+  const { transferRequestUrl, parseTransferRequest, alreadyRefunded, refundMemo, withReference, memoInstruction } = await import('../src');
+  const { generateKeyPairSigner } = await import('@solana/kit');
+  it('round-trips a transfer request with a reference', async () => {
+    const m = (await generateKeyPairSigner()).address;
+    const ref = (await generateKeyPairSigner()).address;
+    const url = transferRequestUrl({ recipient: m, amount: 2_500_000n, splToken: USDC_MINT, reference: ref, label: 'Cafe' });
+    expect(url.startsWith(`solana:${m}?`)).toBe(true);
+    const r = parseTransferRequest(url);
+    expect(r).toMatchObject({ recipient: m, amount: 2_500_000n, splToken: USDC_MINT, reference: ref, label: 'Cafe' });
+    expect(() => parseTransferRequest(`solana:${m}?amount=1`)).toThrow('no reference');
+    const ix = withReference(memoInstruction('x'), ref);
+    expect(ix.accounts?.at(-1)).toEqual({ address: ref, role: 0 });
+  });
+  it('refuses a second refund of the same payment', () => {
+    expect(alreadyRefunded([{ memo: null }, { memo: '[12] other' }], 'abc')).toBe(false);
+    expect(alreadyRefunded([{ memo: `[24] ${refundMemo('abc')}` }], 'abc')).toBe(true);
+  });
+});
