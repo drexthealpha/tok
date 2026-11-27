@@ -13,6 +13,7 @@
     "@noble/curves": "^2.4.0",
     "@noble/hashes": "^2.4.0",
     "@solana/kit": "^8.6.0",
+    "@supabase/supabase-js": "^2.119.2",
     "@swig-wallet/lib": "3.0.0",
     "@tok/core": "workspace:*",
     "preact": "^11.2.0"

@@ -3,12 +3,20 @@ import { cors } from 'hono/cors';
 import { ALLOWED_PROGRAMS } from '@tok/core';
 import type { Kora } from './kora';
 import { Refused, vet } from './relay';
+import { walletFromProof, type Proof } from './proof';
+
+export interface ChatAdmin {
+  /** The Supabase user behind an access token, or null. */
+  userId(accessToken: string): Promise<string | null>;
+  bindWallet(userId: string, wallet: string): Promise<void>;
+}
 
 export interface Deps {
   kora: Kora;
   /** Origins allowed to call the server (the web page). */
   origins: string[];
   rateLimitPerMinute?: number;
+  chat?: ChatAdmin;
 }
 
 /** Per-IP fixed-window rate limit, kept in memory. */
@@ -28,7 +36,7 @@ function limiter(perMinute: number) {
 
 export function createApp(deps: Deps) {
   const app = new Hono();
-  const allow = limiter(deps.rateLimitPerMinute ?? 60);
+  const allow = limiter(deps.rateLimitPerMinute ?? 20);
   app.use('*', cors({ origin: deps.origins, allowMethods: ['GET', 'POST', 'OPTIONS'] }));
 
   app.onError((err, c) => {
@@ -54,6 +62,22 @@ export function createApp(deps: Deps) {
     } catch (e) {
       return c.json({ error: (e as Error).message.slice(0, 300) }, 502);
     }
+  });
+
+  app.post('/chat/bind', async (c) => {
+    if (!deps.chat) return c.json({ error: 'Chat is not set up on this server' }, 503);
+    const body = await c.req.json<{ accessToken?: string; proof?: Proof }>().catch(() => ({}) as { accessToken?: string; proof?: Proof });
+    if (!body.accessToken || !body.proof) throw new Refused('Send accessToken and proof');
+    const userId = await deps.chat.userId(body.accessToken);
+    if (!userId) throw new Refused('Not signed in', 401);
+    let wallet: string;
+    try {
+      wallet = await walletFromProof(body.proof, userId, deps.origins);
+    } catch (e) {
+      throw new Refused((e as Error).message, 401);
+    }
+    await deps.chat.bindWallet(userId, wallet);
+    return c.json({ wallet });
   });
 
   return app;

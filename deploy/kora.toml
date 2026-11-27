@@ -28,8 +28,9 @@ get_payer_signer = true
 get_version = true
 
 [validation]
-# Rent for a claim account and its vault is about 3,000,000 lamports on devnet.
-max_allowed_lamports = 10000000
+# Rent for a claim account and its vault is about 3,000,000 lamports on devnet;
+# a new wallet with its USDC account is under 5,000,000.
+max_allowed_lamports = 8000000
 max_signatures = 4
 price_source = "Mock"
 allow_durable_transactions = false
@@ -50,7 +51,9 @@ allowed_spl_paid_tokens = []
 disallowed_accounts = []
 
 [validation.fee_payer_policy.system]
-allow_transfer = false
+# Swig funds a new wallet with a System Transfer from the payer. Each
+# transaction outflow from the fee payer is capped by max_allowed_lamports.
+allow_transfer = true
 allow_assign = false
 allow_create_account = true
 allow_allocate = false

@@ -10,7 +10,10 @@
   },
   "dependencies": {
     "@hono/node-server": "^2.1.11",
+    "@noble/curves": "^2.4.0",
+    "@noble/hashes": "^2.4.0",
     "@solana/kit": "^8.6.0",
+    "@supabase/supabase-js": "^2.119.2",
     "@tok/core": "workspace:*",
     "hono": "^4.13.23",
     "tsx": "^4.23.15"
