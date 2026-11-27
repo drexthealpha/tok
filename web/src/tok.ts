@@ -36,6 +36,7 @@ import {
 import { accountData, computeUnits, feePayer, relay, rpc, slot, tokenBalance } from './chain';
 import { SITE } from './config';
 import { publicKeyBytes, signer, type Passkey } from './passkey';
+import { connectWallet, inApp, savedWallet, signWithWallet } from './mwa';
 
 /** The token program is read from the mint's owner (devnet USDC: Token). */
 let tokenProgramCache: Promise<Address> | null = null;
@@ -91,9 +92,16 @@ export interface Wallet {
   swig: Address;
   address: Address;
   exists: boolean;
+  /** "mwa": the Android app, signing with the phone's wallet. */
+  kind?: 'passkey' | 'mwa';
 }
 
 export async function walletFor(p: Passkey): Promise<Wallet> {
+  if (inApp()) {
+    const a = savedWallet();
+    if (!a) throw new Error('Connect your wallet first');
+    return { swig: a, address: a, exists: true, kind: 'mwa' };
+  }
   const swig = await swigAccountFor(publicKeyBytes(p));
   const data = await accountData(swig);
   if (!data) return { swig, address: swig, exists: false };
@@ -103,6 +111,10 @@ export async function walletFor(p: Passkey): Promise<Wallet> {
 /** Instructions that create the wallet and its USDC account, if missing. */
 async function setupInstructions(p: Passkey): Promise<{ ixs: Instruction[]; wallet: Wallet }> {
   const payer = await feePayer();
+  if (inApp()) {
+    const a = savedWallet() ?? (await connectWallet());
+    return { ixs: [await createAtaIdempotent(payer, a)], wallet: { swig: a, address: a, exists: true, kind: 'mwa' } };
+  }
   let w = await walletFor(p);
   const ixs: Instruction[] = [];
   if (!w.exists) {
@@ -114,6 +126,10 @@ async function setupInstructions(p: Passkey): Promise<{ ixs: Instruction[]; wall
 }
 
 export async function ensureWallet(p: Passkey): Promise<Wallet> {
+  if (inApp()) {
+    const a = savedWallet() ?? (await connectWallet());
+    return { swig: a, address: a, exists: true, kind: 'mwa' };
+  }
   const w = await walletFor(p);
   if (w.exists) return w;
   const { ixs, wallet } = await setupInstructions(p);
@@ -136,9 +152,10 @@ async function signWithPasskey(p: Passkey, w: Wallet, ixs: Instruction[]): Promi
 }
 
 /** Sign instructions with the passkey wallet and send them, fees paid by the makers. */
-export async function sendFromWallet(p: Passkey, w: Wallet, ixs: Instruction[]): Promise<string> {
+export async function sendFromWallet(p: Passkey, w: Wallet, ixs: Instruction[], before: Instruction[] = []): Promise<string> {
+  if (w.kind === 'mwa') return relay([...before, ...ixs], [], signWithWallet);
   const signed = await signWithPasskey(p, w, ixs);
-  return relay([computeUnits(PASSKEY_COMPUTE_UNITS), ...signed]);
+  return relay([computeUnits(PASSKEY_COMPUTE_UNITS), ...before, ...signed]);
 }
 
 /* ---------- sent links, kept on this phone ---------- */
@@ -337,6 +354,5 @@ export async function sendTo(p: Passkey, w: Wallet, to: string, amount: bigint):
     await createAtaIdempotent(payer, dest),
     transferChecked(await usdcAccount(w.address), await usdcAccount(dest), w.address, amount, tp),
   ];
-  const signed = await signWithPasskey(p, w, [ixs[1]!]);
-  return relay([computeUnits(PASSKEY_COMPUTE_UNITS), ixs[0]!, ...signed]);
+  return sendFromWallet(p, w, [ixs[1]!], [ixs[0]!]);
 }

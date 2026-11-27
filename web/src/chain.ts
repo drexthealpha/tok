@@ -4,7 +4,9 @@ import {
   createSolanaRpc,
   createTransactionMessage,
   getBase64EncodedWireTransaction,
+  getBase64Decoder,
   getBase64Encoder,
+  getTransactionEncoder,
   partiallySignTransaction,
   pipe,
   setTransactionMessageFeePayer,
@@ -70,7 +72,11 @@ export async function tokenBalance(tokenAccount: Address): Promise<bigint> {
  * Build the transaction with the makers' fee payer, sign it with any extra
  * signers (a claim key), and send it to Tok's server, which hands it to Kora.
  */
-export async function relay(instructions: Instruction[], signers: KeyPairSigner[] = []): Promise<string> {
+export async function relay(
+  instructions: Instruction[],
+  signers: KeyPairSigner[] = [],
+  walletSign?: (wire: Uint8Array) => Promise<Uint8Array>,
+): Promise<string> {
   const payer = await feePayer();
   const { value: bh } = await rpc.getLatestBlockhash({ commitment: 'confirmed' }).send();
   const msg = pipe(
@@ -81,10 +87,16 @@ export async function relay(instructions: Instruction[], signers: KeyPairSigner[
   );
   let tx = compileTransaction(msg);
   if (signers.length) tx = await partiallySignTransaction(signers.map((s) => s.keyPair), tx);
+  let wire: string = getBase64EncodedWireTransaction(tx);
+  if (walletSign) {
+    // The Android app: the phone's wallet signs as sender after its own approval.
+    const signed = await walletSign(new Uint8Array(getTransactionEncoder().encode(tx)));
+    wire = getBase64Decoder().decode(signed);
+  }
   const r = await fetch(`${SERVER}/relay`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ transaction: getBase64EncodedWireTransaction(tx) }),
+    body: JSON.stringify({ transaction: wire }),
   });
   const j = (await r.json().catch(() => ({}))) as { signature?: string; error?: string };
   if (!r.ok || !j.signature) throw new Error(readable(j.error ?? `Server answered ${r.status}`));

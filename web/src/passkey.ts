@@ -15,6 +15,9 @@ export interface Passkey {
 
 const STORE = 'tok.passkey';
 
+/** Stands in for a passkey inside the Android app, where the phone's wallet signs. */
+export const MWA_MARK: Passkey = { credentialId: 'mwa', publicKey: '' };
+
 export function savedPasskey(): Passkey | null {
   try {
     const raw = localStorage.getItem(STORE);

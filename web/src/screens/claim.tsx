@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'preact/hooks';
 import { formatAmount, inAppBrowser, openInBrowser } from '@tok/core';
-import { createPasskey, passkeysAvailable, savedPasskey } from '../passkey';
+import { createPasskey, MWA_MARK, passkeysAvailable, savedPasskey } from '../passkey';
+import { connectWallet, inApp } from '../mwa';
 import { claim, readLink, sendTo, walletFor, type LinkState, type OpenedLink } from '../tok';
 import { counter } from '../counter';
 import { EXPLORER } from '../config';
@@ -47,7 +48,8 @@ export function ClaimScreen() {
     counter.add();
     setView({ s: 'claiming', opened });
     try {
-      let p = savedPasskey();
+      let p = inApp() ? MWA_MARK : savedPasskey();
+      if (inApp()) await connectWallet();
       if (!p) {
         p = await createPasskey();
         counter.add(); // the face or fingerprint prompt answered
@@ -60,7 +62,7 @@ export function ClaimScreen() {
   }
 
   async function sendBack(opened: OpenedLink) {
-    const p = savedPasskey();
+    const p = inApp() ? MWA_MARK : savedPasskey();
     if (!p || !opened.record) return;
     setBackState('Confirm with your face or fingerprint');
     try {
@@ -72,7 +74,7 @@ export function ClaimScreen() {
     }
   }
 
-  const blocked = app !== null || canPasskey === false;
+  const blocked = !inApp() && (app !== null || canPasskey === false);
 
   return (
     <div class="stack">

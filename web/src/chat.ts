@@ -8,7 +8,8 @@ import { createClient, type RealtimeChannel, type SupabaseClient } from '@supaba
 import { sha256 } from '@noble/hashes/sha2.js';
 import { findLinks, previewTarget, splitExact } from '@tok/core';
 import { SERVER } from './config';
-import { unhex, type Passkey } from './passkey';
+import type { Passkey } from './passkey';
+import { inApp, signMessageWithWallet } from './mwa';
 
 export const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string | undefined;
 const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
@@ -62,6 +63,11 @@ export async function signInChat(p: Passkey, wallet: string): Promise<void> {
   const session = data.session!;
   const mine = await s.from('profiles').select('wallet').eq('user_id', session.user.id).maybeSingle();
   if (mine.data?.wallet === wallet) return;
+  if (inApp()) {
+    // The Android app: the phone's wallet signs the sign-in message.
+    const sig = await signMessageWithWallet(new TextEncoder().encode(`tok-chat:${session.user.id}`));
+    return bind(session.access_token, { kind: 'ed25519', wallet, signature: b64u(sig) });
+  }
   const challenge = sha256(new TextEncoder().encode(`tok-chat:${session.user.id}`));
   const cred = (await navigator.credentials.get({
     publicKey: {
@@ -73,22 +79,22 @@ export async function signInChat(p: Passkey, wallet: string): Promise<void> {
   })) as PublicKeyCredential | null;
   if (!cred) throw new Error('No passkey check');
   const res = cred.response as AuthenticatorAssertionResponse;
-  const r = await fetch(`${SERVER}/chat/bind`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({
-      accessToken: session.access_token,
-      proof: {
+  return bind(session.access_token, {
         kind: 'passkey',
         publicKey: p.publicKey,
         authenticatorData: b64u(res.authenticatorData),
         clientDataJSON: b64u(res.clientDataJSON),
-        signature: b64u(res.signature),
-      },
-    }),
+    signature: b64u(res.signature),
+  });
+}
+
+async function bind(accessToken: string, proof: Record<string, string>) {
+  const r = await fetch(`${SERVER}/chat/bind`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ accessToken, proof }),
   });
   if (!r.ok) throw new Error(((await r.json().catch(() => ({}))) as { error?: string }).error ?? 'Chat sign-in failed');
-  void unhex;
 }
 
 export async function myChats(me: string): Promise<ChatSummary[]> {

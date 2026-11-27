@@ -12,10 +12,12 @@
   "dependencies": {
     "@noble/curves": "^2.4.0",
     "@noble/hashes": "^2.4.0",
+    "@solana-mobile/wallet-standard-mobile": "^0.7.1",
     "@solana/kit": "^8.6.0",
     "@supabase/supabase-js": "^2.119.2",
     "@swig-wallet/lib": "3.0.0",
     "@tok/core": "workspace:*",
+    "@wallet-standard/app": "^1.1.1",
     "preact": "^11.2.0",
     "uqr": "^0.1.3"
   },

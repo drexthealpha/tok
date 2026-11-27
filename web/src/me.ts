@@ -1,5 +1,11 @@
 import { useCallback, useEffect, useState } from 'preact/hooks';
-import { createPasskey, savedPasskey, usePasskeyOnThisPhone, type Passkey } from './passkey';
+import { createPasskey, MWA_MARK, savedPasskey as savedPasskeyOnly, usePasskeyOnThisPhone, type Passkey } from './passkey';
+import { connectWallet, inApp, savedWallet } from './mwa';
+
+function savedPasskey(): Passkey | null {
+  if (inApp()) return savedWallet() ? MWA_MARK : null;
+  return savedPasskeyOnly();
+}
 import { balance, ensureWallet, walletFor, type Wallet } from './tok';
 import { counter } from './counter';
 
@@ -36,6 +42,11 @@ export function useMe(): Me {
 
   const start = useCallback(async () => {
     let p = savedPasskey();
+    if (!p && inApp()) {
+      await connectWallet();
+      p = MWA_MARK;
+      counter.add();
+    }
     if (!p) {
       p = await createPasskey();
       counter.add();
