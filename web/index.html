@@ -15,6 +15,9 @@
       <div class="stack">
         <input class="amount" inputmode="decimal" placeholder="0" aria-label="Amount in USDC" disabled />
         <div class="unit">USDC</div>
+        <label class="toggle"><span>Pass phrase</span><input type="checkbox" disabled /></label>
+        <div class="warn">Anyone who can read this message can take the money before your contact does. For larger amounts, turn on a pass phrase and send it another way.</div>
+        <button class="primary" disabled>Pay</button>
       </div>
     </div>
     <script type="module" src="/src/main.tsx"></script>

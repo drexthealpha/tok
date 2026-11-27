@@ -17,6 +17,7 @@
     "litesvm": "^1.6.2"
   },
   "devDependencies": {
-    "playwright": "^1.65.1"
+    "playwright": "^1.65.1",
+    "web-vitals": "^6.2.3"
   }
 }

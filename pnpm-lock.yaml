@@ -117,6 +117,9 @@ importers:
       playwright:
         specifier: ^1.65.1
         version: 1.65.1
+      web-vitals:
+        specifier: ^6.2.3
+        version: 6.2.3
 
   web:
     dependencies:
@@ -2692,6 +2695,9 @@ packages:
         optional: true
       jsdom:
         optional: true
+
+  web-vitals@6.2.3:
+    resolution: {integrity: sha512-Dmy+vdO1UPMqXiAtZSNayhl4f794Bxfd94W4HIj2HlYtczEQfEOon969memlcpcHrTuOKLa5baFjX7WbgmOq+A==}
 
   whatwg-mimetype@3.0.0:
     resolution: {integrity: sha512-nt+N2dzIutVRxARx1nghPKGv1xHikU7HKdfafKkLNLindmPU/ch3U31NOCGGA/dmPcmb1VlofO0vnKAcsm0o/Q==}
@@ -5380,6 +5386,8 @@ snapshots:
       happy-dom: 21.0.4
     transitivePeerDependencies:
       - msw
+
+  web-vitals@6.2.3: {}
 
   whatwg-mimetype@3.0.0: {}
 
