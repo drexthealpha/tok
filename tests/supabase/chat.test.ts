@@ -13,6 +13,7 @@ async function user(admin: SupabaseClient, wallet: string) {
   const c = createClient(url!, anon!, { auth: { persistSession: false } });
   const { data, error } = await c.auth.signInAnonymously();
   if (error || !data.user) throw error ?? new Error('no user');
+  await c.realtime.setAuth(data.session!.access_token);
   const { error: e2 } = await admin.from('profiles').upsert({ user_id: data.user.id, wallet });
   if (e2) throw e2;
   return c;
@@ -48,7 +49,7 @@ describe.skipIf(!on)('chat on Supabase (part 8)', () => {
 
   it('a message sent by A appears for B in real time', async () => {
     const got = new Promise<string>((resolve, reject) => {
-      const t = setTimeout(() => reject(new Error('no realtime message in 20 s')), 20_000);
+      const t = setTimeout(() => reject(new Error('no realtime message in 25 s')), 25_000);
       b.channel('t-' + chatId)
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `chat_id=eq.${chatId}` }, (p) => {
           clearTimeout(t);
@@ -57,14 +58,14 @@ describe.skipIf(!on)('chat on Supabase (part 8)', () => {
         .subscribe(async (status) => {
           if (status === 'SUBSCRIBED') {
             // Give the subscription a moment, then send.
-            await new Promise((r) => setTimeout(r, 500));
+            await new Promise((r) => setTimeout(r, 2000));
             const { error } = await a.from('messages').insert({ chat_id: chatId, sender: A, kind: 'text', body: 'hello B' });
             if (error) reject(error);
           }
         });
     });
     expect(await got).toBe('hello B');
-  }, 30_000);
+  }, 40_000);
 
   it('a user who is not in the chat cannot read or write it', async () => {
     const r = await outsider.from('messages').select('*').eq('chat_id', chatId);

@@ -140,6 +140,8 @@ export async function messages(chatId: string): Promise<Message[]> {
 }
 
 export function subscribe(chatId: string, on: (m: Message, kind: 'INSERT' | 'UPDATE') => void): RealtimeChannel {
+  // The realtime socket checks row level security with this user's token.
+  sb().auth.getSession().then(({ data }) => data.session && sb().realtime.setAuth(data.session.access_token));
   return sb()
     .channel(`chat-${chatId}`)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'messages', filter: `chat_id=eq.${chatId}` }, (p) => {
