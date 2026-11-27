@@ -1,14 +1,37 @@
 #!/usr/bin/env bash
-# Fast checks only (under 60 s). The full suite runs in CI.
-set -euo pipefail
+# Fast checks only, in parallel, on what changed: secret scan, lint, type
+# check of the touched packages, tests related to the changed files.
+# The full suite runs in CI.
+set -uo pipefail
 start=$(date +%s)
-changed=$(git diff --name-only --diff-filter=ACMR "@{push}" 2>/dev/null || git diff --name-only HEAD~1)
-# Secret scan: exact partner keys (by hash) and key patterns.
-node scripts/secret-scan.mjs
-lintable=$(echo "$changed" | grep -E ".(ts|tsx|js|mjs)$" | grep -v "^android/" || true)
-if [ -n "$lintable" ]; then npx eslint --max-warnings=0 $lintable; fi
-for p in packages/core server web; do
-  if echo "$changed" | grep -q "^$p/"; then [ -f "$p/tsconfig.json" ] && npx tsc -p "$p"; fi
-done
-npx vitest run --changed "@{push}" --passWithNoTests packages server web 2>/dev/null || npx vitest run --passWithNoTests packages
+base=$(git rev-parse -q --verify "@{push}" 2>/dev/null || git rev-parse HEAD~1)
+changed=$(git diff --name-only --diff-filter=ACMR "$base" HEAD)
+code=$(echo "$changed" | grep -E '\.(ts|tsx|js|mjs)$' | grep -v '^android/' || true)
+log=$(mktemp -d)
+
+node scripts/secret-scan.mjs >"$log/secrets" 2>&1 &
+pids="$!"
+if [ -n "$code" ]; then
+  npx eslint --max-warnings=0 $code >"$log/lint" 2>&1 &
+  pids="$pids $!"
+  for p in packages/core server web tests; do
+    if echo "$code" | grep -q "^$p/"; then
+      npx tsc -p "$p" >"$log/tsc-${p//\//-}" 2>&1 &
+      pids="$pids $!"
+    fi
+  done
+  unit=$(echo "$code" | grep -E '^(packages|server|web)/' || true)
+  if [ -n "$unit" ]; then
+    npx vitest related --run --passWithNoTests $unit >"$log/tests" 2>&1 &
+    pids="$pids $!"
+  fi
+fi
+
+fail=0
+for pid in $pids; do wait "$pid" || fail=1; done
+if [ "$fail" -ne 0 ]; then
+  for f in "$log"/*; do echo "== $(basename "$f")"; tail -20 "$f"; done
+  echo "pre-push: failed"
+  exit 1
+fi
 echo "pre-push: $(( $(date +%s) - start )) s"
