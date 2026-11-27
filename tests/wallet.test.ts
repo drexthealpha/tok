@@ -18,6 +18,7 @@ import {
   USDC_DECIMALS,
   USDC_MINT,
   walletAddress,
+  walletAddressFor,
 } from '@tok/core';
 import {
   ata,
@@ -76,6 +77,7 @@ describe.skipIf(!haveSwigSo)('passkey wallet (part 2)', () => {
   it('is created with the makers paying, and a passkey-signed transfer succeeds', async () => {
     const a = await newWallet(w);
     expect(exists(w, a.swigAddr)).toBe(true);
+    expect(await walletAddressFor(a.swigAddr)).toBe(a.wallet);
     const from = await fundUsdc(w, a.wallet, 5_000_000n);
     const bob = await generateKeyPairSigner();
     const to = await createAta(w, bob.address);

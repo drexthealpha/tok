@@ -1,0 +1,11 @@
+{
+  "name": "Tok",
+  "short_name": "Tok",
+  "description": "Pay anyone with a link in any chat. Solana devnet.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0b0d10",
+  "theme_color": "#0b0d10",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}

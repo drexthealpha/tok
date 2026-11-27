@@ -10,7 +10,7 @@
   },
   "scripts": {
     "lint": "eslint .",
-    "typecheck": "tsc -p packages/core && tsc -p tests && tsc -p server",
+    "typecheck": "tsc -p packages/core && tsc -p tests && tsc -p server && tsc -p web",
     "test": "vitest run",
     "test:changed": "vitest run --changed origin/main",
     "build:web": "pnpm --filter @tok/web build",

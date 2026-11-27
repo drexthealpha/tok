@@ -33,6 +33,7 @@ export function createApp(deps: Deps) {
 
   app.onError((err, c) => {
     if (err instanceof Refused) return c.json({ error: err.message }, err.status as 400);
+    console.error(err);
     return c.json({ error: 'Server error' }, 500);
   });
 

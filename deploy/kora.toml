@@ -7,9 +7,14 @@ cors_allow_origins = ["*"]
 
 [kora.lighthouse]
 enabled = false
+fail_if_transaction_size_overflow = true
 
 [kora.cache]
 enabled = false
+url = "redis://localhost:6379"
+default_ttl = 300
+account_ttl = 60
+price_ttl = 0
 
 [kora.enabled_methods]
 liveness = true

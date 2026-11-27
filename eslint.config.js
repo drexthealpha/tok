@@ -12,7 +12,7 @@ export default tseslint.config(
     },
   },
   {
-    files: ['scripts/**/*.mjs'],
+    files: ['scripts/**/*.mjs', 'web/scripts/**/*.mjs'],
     languageOptions: { globals: { process: 'readonly', console: 'readonly', fetch: 'readonly', Buffer: 'readonly', setTimeout: 'readonly' } },
   },
 );

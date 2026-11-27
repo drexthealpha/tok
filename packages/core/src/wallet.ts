@@ -13,7 +13,7 @@ import {
   getSignInstructions,
   getSwigWalletAddress,
 } from '@swig-wallet/kit';
-import { Swig, type SigningFn } from '@swig-wallet/lib';
+import { findSwigSystemAddressPdaRaw, Swig, type SigningFn } from '@swig-wallet/lib';
 
 export type { SigningFn };
 
@@ -54,6 +54,12 @@ export function swigFromAccount(swigAddress: Address, data: Uint8Array): Swig {
 /** The address that holds the wallet's money and signs for it. */
 export async function walletAddress(swig: Swig): Promise<Address> {
   return (await getSwigWalletAddress(swig)) as unknown as Address;
+}
+
+/** The wallet address, known before the wallet exists (Swig's system address). */
+export async function walletAddressFor(swigAccount: Address): Promise<Address> {
+  const [pda] = await findSwigSystemAddressPdaRaw(swigAccount as never);
+  return pda.toBase58() as Address;
 }
 
 /**
