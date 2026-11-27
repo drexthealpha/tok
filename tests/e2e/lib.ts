@@ -1,6 +1,6 @@
 /** Helpers for the live runs on devnet. */
 import { readFileSync } from 'node:fs';
-import { chromium, type Browser, type Page } from 'playwright';
+import { type Browser, type Page } from 'playwright';
 import {
   appendTransactionMessageInstructions,
   createKeyPairSignerFromBytes,

@@ -132,6 +132,6 @@ function readable(e: string): string {
   if (/AccountNotInitialized|0xbc4/.test(e)) return 'This link was already claimed, cancelled or returned.';
   if (/insufficient funds|0x1\b/.test(e)) return 'Not enough USDC in this wallet.';
   if (/already in use/.test(e)) return 'This link was already used.';
-  if (/0xbd2/.test(e)) return 'The wallet changed while signing. Try again.';
+  if (/0xbd2b/.test(e)) return 'The wallet changed while signing. Try again.';
   return e;
 }
