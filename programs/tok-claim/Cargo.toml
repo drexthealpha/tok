@@ -20,4 +20,4 @@ short-expiry = []
 
 [dependencies]
 anchor-lang = { version = "=0.31.1", features = ["init-if-needed"] }
-anchor-spl = { version = "=0.31.1", default-features = false, features = ["token", "token_2022", "associated_token"] }
+anchor-spl = { version = "=1.2.2", default-features = false, features = ["token", "token_2022", "associated_token"] }
