@@ -9,3 +9,4 @@ export * from './refund';
 export * from './preview';
 export * from './inapp';
 export * from './timing';
+export * from './wallet';

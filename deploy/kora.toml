@@ -1,0 +1,93 @@
+# Kora, run by the makers on devnet. Users pay nothing; the makers' fee
+# payer pays every fee and rent deposit. Tok's server checks the same
+# allow list before a transaction reaches Kora.
+[kora]
+rate_limit = 50
+cors_allow_origins = ["*"]
+
+[kora.lighthouse]
+enabled = false
+
+[kora.cache]
+enabled = false
+
+[kora.enabled_methods]
+liveness = true
+estimate_transaction_fee = false
+get_supported_tokens = true
+sign_transaction = false
+sign_and_send_transaction = true
+get_blockhash = true
+get_config = true
+get_payer_signer = true
+get_version = true
+
+[validation]
+# Rent for a claim account and its vault is about 3,000,000 lamports on devnet.
+max_allowed_lamports = 10000000
+max_signatures = 4
+price_source = "Mock"
+allow_durable_transactions = false
+cross_cluster_check = false
+allowed_programs = [
+  "2pZCUFv63kde6rkaAaZ3GGhUu4u4jzM8kBcyshZ9qauH", # Tok claim program
+  "swigypWHEksbC64pWKwah1WTeh9JXwx8H1rJHLdbQMB",  # Swig wallet
+  "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",  # Token
+  "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",  # Token-2022 (read from the mint)
+  "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL", # Associated token accounts
+  "11111111111111111111111111111111",             # System
+  "ComputeBudget111111111111111111111111111111",  # Compute budget
+  "MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr",  # Memo
+  "Secp256r1SigVerify1111111111111111111111111",  # Passkey signature check
+]
+allowed_tokens = ["4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU"]
+allowed_spl_paid_tokens = []
+disallowed_accounts = []
+
+[validation.fee_payer_policy.system]
+allow_transfer = false
+allow_assign = false
+allow_create_account = true
+allow_allocate = false
+
+[validation.fee_payer_policy.system.nonce]
+allow_initialize = false
+allow_advance = false
+allow_authorize = false
+allow_withdraw = false
+
+[validation.fee_payer_policy.spl_token]
+allow_transfer = false
+allow_burn = false
+allow_close_account = false
+allow_approve = false
+allow_revoke = false
+allow_set_authority = false
+allow_mint_to = false
+allow_initialize_mint = false
+allow_initialize_account = false
+allow_initialize_multisig = false
+allow_freeze_account = false
+allow_thaw_account = false
+allow_withdraw_excess_lamports = false
+allow_unwrap_lamports = false
+
+[validation.fee_payer_policy.token_2022]
+allow_transfer = false
+allow_burn = false
+allow_close_account = false
+allow_approve = false
+allow_revoke = false
+allow_set_authority = false
+allow_mint_to = false
+allow_initialize_mint = false
+allow_initialize_account = false
+allow_initialize_multisig = false
+allow_freeze_account = false
+allow_thaw_account = false
+allow_withdraw_excess_lamports = false
+allow_unwrap_lamports = false
+allow_reallocate = false
+
+[validation.price]
+type = "free"

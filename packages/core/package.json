@@ -12,6 +12,8 @@
     "@noble/hashes": "^2.4.0",
     "@scure/bip39": "^2.4.0",
     "@solana/kit": "^8.6.0",
+    "@swig-wallet/kit": "3.0.0",
+    "@swig-wallet/lib": "3.0.0",
     "hash-wasm": "^4.13.0"
   }
 }
