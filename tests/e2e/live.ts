@@ -48,7 +48,12 @@ async function phone(browser: Browser, label: string) {
 }
 
 async function waitText(page: Page, text: string, ms = 120_000) {
-  await page.getByText(text, { exact: false }).first().waitFor({ timeout: ms });
+  try {
+    await page.getByText(text, { exact: false }).first().waitFor({ timeout: ms });
+  } catch (e) {
+    console.log(`  page text while waiting for "${text}":\n${(await page.locator('#app').innerText()).slice(0, 1500)}`);
+    throw e;
+  }
 }
 
 async function fund(to: Address, units: bigint) {
@@ -108,6 +113,62 @@ try {
   const sig = await b.locator('a.small').first().getAttribute('href');
   console.log(`B received in ${Date.now() - t1} ms: ${sig}`);
   console.log('PASS live pay and claim');
+
+  // Part 6: "Send back" by the receiver.
+  await b.getByRole('button', { name: 'Send back' }).click();
+  await waitText(b, 'Sent back');
+  console.log('PASS send back:', await b.getByText('Sent back').textContent());
+
+  // Part 5: a link locked with a pass phrase.
+  await a.goto(SITE);
+  await a.getByLabel('Amount in USDC').fill('0.5');
+  await waitText(a, 'in wallet', 60_000);
+  await a.locator('label.toggle input').check();
+  await a.getByRole('button', { name: 'Pay' }).click();
+  await waitText(a, 'Paid into a link');
+  const locked = (await a.locator('.card.mono').textContent())!.trim();
+  const words = (await a.locator('.words').textContent())!.trim();
+  await b.goto(locked);
+  await waitText(b, '4 words');
+  await b.locator('input[type=text]').fill('wrong words here please');
+  await b.getByRole('button', { name: 'Unlock' }).click();
+  await waitText(b, 'Wrong pass phrase');
+  await b.locator('input[type=text]').fill(words);
+  await b.getByRole('button', { name: 'Unlock' }).click();
+  await waitText(b, '0.50 USDC', 60_000);
+  await b.getByRole('button', { name: /Receive/ }).click();
+  await waitText(b, 'Received');
+  console.log('PASS pass phrase link: wrong words refused, right words claimed');
+
+  // Part 6: cancel before a claim, and the link is then dead.
+  await a.goto(SITE);
+  await a.getByLabel('Amount in USDC').fill('0.25');
+  await waitText(a, 'in wallet', 60_000);
+  await a.getByRole('button', { name: 'Pay' }).click();
+  await waitText(a, 'Paid into a link');
+  const toCancel = (await a.locator('.card.mono').textContent())!.trim();
+  await a.goto(SITE + 'w');
+  await a.getByRole('button', { name: 'Cancel' }).first().click();
+  await waitText(a, 'Cancelled');
+  await b.goto(toCancel);
+  await waitText(b, 'already claimed, cancelled or returned', 60_000);
+  console.log('PASS cancel before claim');
+
+  // Part 7: "Move to my wallet", and a malformed address is refused before signing.
+  const solflare = (await import('@solana/kit')).generateKeyPairSigner;
+  const target = (await solflare()).address;
+  await b.goto(SITE + 'w');
+  await b.locator('input[placeholder^="Solana address"]').fill('not-an-address');
+  await b.getByRole('button', { name: 'Move' }).click();
+  await waitText(b, 'not a Solana address');
+  await b.locator('input[placeholder^="Solana address"]').fill(target);
+  await b.locator('input[inputmode=decimal]').fill('0.5');
+  await b.getByRole('button', { name: 'Move' }).click();
+  await waitText(b, 'Moved 0.50 USDC');
+  const dest = await associatedTokenAddress(target, USDC_MINT, TOKEN_PROGRAM);
+  const bal = await rpc.getTokenAccountBalance(dest, { commitment: 'confirmed' }).send();
+  if (bal.value.amount !== '500000') throw new Error(`moved amount ${bal.value.amount}`);
+  console.log('PASS move to my wallet', target);
 } finally {
   await browser.close();
 }

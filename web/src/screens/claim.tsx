@@ -185,7 +185,15 @@ export function ClaimScreen() {
             <button class="ghost" onClick={() => go('wallet')}>Move to my wallet</button>
           </div>
           {backState && <div class="small">{backState}</div>}
-          <button class="primary" onClick={() => go('chat')}>Chat</button>
+          <button
+            class="primary"
+            onClick={() => {
+              sessionStorage.setItem('tok.chatWith', view.opened.record!.sender);
+              go('chat');
+            }}
+          >
+            Chat with the sender
+          </button>
         </div>
       )}
     </div>

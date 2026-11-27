@@ -57,3 +57,13 @@ nav.tabs a[aria-current='page'] { background: var(--card); color: var(--text); }
   border-radius: 99px; padding: 6px 12px; font-size: 14px; z-index: 10; }
 .words { font-size: 22px; font-weight: 700; text-align: center; letter-spacing: 0.02em; }
 @media (prefers-reduced-motion: reduce) { .spinner { animation: none; } }
+.bubbles { display: flex; flex-direction: column; gap: 8px; min-height: 40dvh; }
+.bubble { align-self: flex-start; max-width: 85%; background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 10px 12px; }
+.bubble.mine { align-self: flex-end; background: #16302a; border-color: #1f4a3d; }
+.bubble .big { font-size: 26px; }
+.bubble audio { width: 220px; }
+.preview { display: flex; gap: 8px; align-items: center; margin-top: 8px; text-decoration: none; color: var(--text); font-size: 14px; }
+.preview img { width: 56px; height: 56px; object-fit: cover; border-radius: 8px; }
+.composer { position: sticky; bottom: 72px; background: var(--bg); padding-top: 8px; }
+.composer .modes button { padding: 8px; font-size: 14px; }
+.action .row button { flex: 1 1 30%; padding: 10px; font-size: 15px; }

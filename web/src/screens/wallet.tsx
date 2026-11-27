@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'preact/hooks';
+import { isAddress } from '@solana/kit';
 import { formatAmount, parseAmount, summarise } from '@tok/core';
 import { useMe } from '../me';
 import { cancel, refreshSent, returnExpired, runs, sendTo, sentLinks, type SentLink } from '../tok';
@@ -42,6 +43,7 @@ export function WalletScreen() {
   async function move() {
     setMsg('Confirm with your face or fingerprint');
     try {
+      if (!isAddress(to.trim())) throw new Error('That is not a Solana address');
       const amount = amt ? parseAmount(amt) : (me.usdc ?? 0n);
       if (amount <= 0n) throw new Error('Nothing to move');
       const sig = await sendTo(me.passkey!, w, to, amount);

@@ -2,6 +2,8 @@
 export interface Kora {
   payer(): Promise<string>;
   signAndSend(transactionBase64: string): Promise<string>;
+  /** Add the fee payer signature without sending. */
+  sign?(transactionBase64: string): Promise<string>;
 }
 
 export function koraClient(url: string, fetchFn: typeof fetch = fetch): Kora {
@@ -24,6 +26,12 @@ export function koraClient(url: string, fetchFn: typeof fetch = fetch): Kora {
       cached = r.signer_address ?? r.signerAddress ?? null;
       if (!cached) throw new Error('Kora returned no payer');
       return cached;
+    },
+    async sign(transaction) {
+      const r = await call<{ signed_transaction?: string; signedTransaction?: string }>('signTransaction', { transaction });
+      const out = r.signed_transaction ?? r.signedTransaction;
+      if (!out) throw new Error('Kora returned no transaction');
+      return out;
     },
     async signAndSend(transaction) {
       const r = await call<{ signature?: string; signed_transaction?: string }>('signAndSendTransaction', {

@@ -4,6 +4,8 @@ import { ALLOWED_PROGRAMS } from '@tok/core';
 import type { Kora } from './kora';
 import { Refused, vet } from './relay';
 import { walletFromProof, type Proof } from './proof';
+import { mountActions, type ActionDeps } from './actions';
+import { mountMedia, type MediaDeps } from './media';
 
 export interface ChatAdmin {
   /** The Supabase user behind an access token, or null. */
@@ -17,6 +19,8 @@ export interface Deps {
   origins: string[];
   rateLimitPerMinute?: number;
   chat?: ChatAdmin;
+  actions?: Omit<ActionDeps, 'kora'>;
+  media?: MediaDeps;
 }
 
 /** Per-IP fixed-window rate limit, kept in memory. */
@@ -37,7 +41,11 @@ function limiter(perMinute: number) {
 export function createApp(deps: Deps) {
   const app = new Hono();
   const allow = limiter(deps.rateLimitPerMinute ?? 20);
-  app.use('*', cors({ origin: deps.origins, allowMethods: ['GET', 'POST', 'OPTIONS'] }));
+  // Actions are called by any wallet; everything else only by Tok's page.
+  app.use('*', async (c, next) => {
+    if (c.req.path.startsWith('/api/actions') || c.req.path === '/actions.json') return next();
+    return cors({ origin: deps.origins, allowMethods: ['GET', 'POST', 'OPTIONS'] })(c, next);
+  });
 
   app.onError((err, c) => {
     if (err instanceof Refused) return c.json({ error: err.message }, err.status as 400);
@@ -79,6 +87,9 @@ export function createApp(deps: Deps) {
     await deps.chat.bindWallet(userId, wallet);
     return c.json({ wallet });
   });
+
+  if (deps.actions) mountActions(app, { ...deps.actions, kora: deps.kora });
+  if (deps.media) mountMedia(app, deps.media);
 
   return app;
 }
