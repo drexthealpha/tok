@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'preact/hooks';
 import { isAddress } from '@solana/kit';
-import { formatAmount, parseAmount, summarise } from '@tok/core';
+import { ARGON2_SETTINGS, formatAmount, parseAmount, summarise, timeOneTry } from '@tok/core';
 import { useMe } from '../me';
 import { cancel, refreshSent, returnExpired, runs, sendTo, sentLinks, type SentLink } from '../tok';
 import { EXPLORER_ADDR } from '../config';
@@ -114,10 +114,32 @@ export function WalletScreen() {
         </div>
       )}
       <PollarWallet />
+      <ArgonTimer />
       <div class="small">{LOSS}</div>
       <div class="small">
         <a href={EXPLORER_ADDR(w.swig)} target="_blank" rel="noreferrer">Swig wallet account</a>
       </div>
     </div>
+  );
+}
+
+/** One Argon2id try, timed on this phone (printed in the README per phone). */
+function ArgonTimer() {
+  const [ms, setMs] = useState<number | null>(null);
+  return (
+    <button
+      class="ghost"
+      style="font-size:14px;padding:10px"
+      onClick={async () => {
+        setMs(-1);
+        setMs(await timeOneTry());
+      }}
+    >
+      {ms === null
+        ? 'Measure one pass phrase try'
+        : ms < 0
+          ? 'Measuring…'
+          : `One try: ${Math.round(ms)} ms (Argon2id, ${ARGON2_SETTINGS.memorySizeKiB / 1024} MiB, ${ARGON2_SETTINGS.iterations} passes)`}
+    </button>
   );
 }
