@@ -1,0 +1,16 @@
+[toolchain]
+anchor_version = "0.31.1"
+
+[features]
+resolution = true
+skip-lint = false
+
+[programs.devnet]
+tok_claim = "2pZCUFv63kde6rkaAaZ3GGhUu4u4jzM8kBcyshZ9qauH"
+
+[provider]
+cluster = "devnet"
+wallet = "~/.tok-secrets/fee-payer.json"
+
+[scripts]
+test = "echo use pnpm test"

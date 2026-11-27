@@ -1,0 +1,29 @@
+{
+  "name": "tok",
+  "private": true,
+  "version": "0.1.0",
+  "license": "MIT",
+  "type": "module",
+  "packageManager": "pnpm@10.33.2",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc -p packages/core && tsc -p tests",
+    "test": "vitest run",
+    "test:changed": "vitest run --changed origin/main",
+    "build:web": "pnpm --filter @tok/web build",
+    "dev:web": "pnpm --filter @tok/web dev",
+    "dev:server": "pnpm --filter @tok/server dev"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^26.6.11",
+    "bs58": "^6.0.0",
+    "eslint": "^10.16.0",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.74.0",
+    "vitest": "^5.1.2"
+  }
+}

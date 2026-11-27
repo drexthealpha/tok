@@ -1,0 +1,93 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  SOLANA_VERSION: v4.3.0
+
+jobs:
+  check:
+    name: lint and types
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+
+  unit:
+    name: unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm vitest run packages server web
+
+  program:
+    name: build claim program
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - name: Cache Solana tools
+        id: solana-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.local/share/solana
+            ~/.cache/solana
+          key: solana-${{ env.SOLANA_VERSION }}
+      - name: Install Solana tools
+        if: steps.solana-cache.outputs.cache-hit != 'true'
+        run: sh -c "$(curl -sSfL https://release.anza.xyz/${SOLANA_VERSION}/install)"
+      - run: echo "$HOME/.local/share/solana/install/active_release/bin" >> "$GITHUB_PATH"
+      - uses: Swatinem/rust-cache@v2
+        with: { workspaces: '. -> target', cache-all-crates: true }
+      - name: Build
+        run: cargo build-sbf --manifest-path programs/tok-claim/Cargo.toml --sbf-out-dir target/deploy
+      - name: Program hash
+        run: sha256sum target/deploy/tok_claim.so | tee target/deploy/tok_claim.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tok-claim
+          path: target/deploy/tok_claim.*
+
+  chain:
+    name: chain tests (LiteSVM)
+    needs: program
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - uses: actions/download-artifact@v4
+        with: { name: tok-claim, path: target/deploy }
+      - name: Cache Swig program
+        uses: actions/cache@v4
+        with:
+          path: tests/fixtures/swig.so
+          key: swig-swigypWHEksbC64pWKwah1WTeh9JXwx8H1rJHLdbQMB-v1
+      - name: Fetch Swig from devnet
+        run: test -f tests/fixtures/swig.so || node scripts/fetch-program.mjs swigypWHEksbC64pWKwah1WTeh9JXwx8H1rJHLdbQMB tests/fixtures/swig.so
+      - run: pnpm vitest run tests

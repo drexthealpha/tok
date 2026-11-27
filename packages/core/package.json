@@ -1,0 +1,17 @@
+{
+  "name": "@tok/core",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@noble/hashes": "^2.4.0",
+    "@scure/bip39": "^2.4.0",
+    "@solana/kit": "^8.6.0",
+    "hash-wasm": "^4.13.0"
+  }
+}
