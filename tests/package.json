@@ -15,5 +15,8 @@
     "@swig-wallet/lib": "^3.0.0",
     "@tok/core": "workspace:*",
     "litesvm": "^1.6.2"
+  },
+  "devDependencies": {
+    "playwright": "^1.65.1"
   }
 }
