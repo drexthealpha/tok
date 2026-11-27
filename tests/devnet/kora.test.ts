@@ -77,10 +77,12 @@ describe.skipIf(!on)('fee payer through Kora on devnet (part 3)', () => {
     const after = (await rpc.getBalance(payer, { commitment: 'confirmed' }).send()).value;
     const swigAcc = (await rpc.getAccountInfo(swig, { commitment: 'confirmed', encoding: 'base64' }).send()).value;
     expect(swigAcc).not.toBeNull();
-    // The fee payer paid the fee and the wallet's rent.
-    expect(before - after).toBeGreaterThanOrEqual(swigAcc!.lamports);
-    // The user holds no SOL and paid nothing.
-    expect((await rpc.getBalance(wallet, { commitment: 'confirmed' }).send()).value).toBe(0n);
+    // The wallet address holds only its rent-exempt minimum, which the makers paid.
+    const walletLamports = (await rpc.getBalance(wallet, { commitment: 'confirmed' }).send()).value;
+    const minimum = await rpc.getMinimumBalanceForRentExemption(0n).send();
+    expect(walletLamports).toBe(minimum);
+    // The fee payer paid the fee and all rent: the Swig account and the wallet address.
+    expect(before - after).toBeGreaterThan(swigAcc!.lamports + walletLamports);
     console.log(`devnet wallet ${swig} created, makers paid ${before - after} lamports, sig ${r.body.signature}`);
   }, 180_000);
 

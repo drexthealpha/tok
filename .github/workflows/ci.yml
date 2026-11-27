@@ -91,3 +91,38 @@ jobs:
       - name: Fetch Swig from devnet
         run: test -f tests/fixtures/swig.so || node scripts/fetch-program.mjs swigypWHEksbC64pWKwah1WTeh9JXwx8H1rJHLdbQMB tests/fixtures/swig.so
       - run: pnpm vitest run tests
+
+  supabase:
+    name: chat tests (Supabase)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - name: Start Supabase
+        run: npx supabase start -x studio,imgproxy,mailpit,edge-runtime,logflare,vector,supavisor
+      - name: Keys
+        run: |
+          npx supabase status -o env > sb.env
+          set -a; . ./sb.env; set +a
+          echo "SUPABASE_URL=${API_URL}" >> "$GITHUB_ENV"
+          echo "SUPABASE_ANON_KEY=${ANON_KEY:-$PUBLISHABLE_KEY}" >> "$GITHUB_ENV"
+          echo "SUPABASE_SERVICE_ROLE_KEY=${SERVICE_ROLE_KEY:-$SECRET_KEY}" >> "$GITHUB_ENV"
+      - run: pnpm vitest run tests/supabase
+
+  devnet:
+    name: devnet (live server and Kora)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm vitest run tests/devnet
+        env: { TOK_DEVNET: '1' }
