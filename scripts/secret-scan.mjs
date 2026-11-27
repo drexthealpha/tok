@@ -49,7 +49,7 @@ for (const f of files) {
       bad++;
     }
   }
-  for (const tok of text.match(/[A-Za-z0-9_.\-]{20,}/g) ?? []) {
+  for (const tok of text.match(/[A-Za-z0-9_.-]{20,}/g) ?? []) {
     const hit = known.get(sha(tok));
     if (hit) {
       console.log(`${f}: the value of ${hit}`);
