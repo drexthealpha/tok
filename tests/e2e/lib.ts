@@ -17,7 +17,7 @@ import { getCreateAssociatedTokenIdempotentInstruction, getTransferCheckedInstru
 import { associatedTokenAddress, TOKEN_PROGRAM, USDC_MINT } from '@tok/core';
 
 export const SITE = process.env.TOK_SITE ?? 'https://drexthealpha.github.io/tok/';
-const KEYS = process.env.TOK_KEYS ?? '//wsl.localhost/Ubuntu-22.04/home/zulab/.tok-secrets';
+const KEYS = process.env.TOK_KEYS ?? 'C:/Users/zulab/.tok-secrets';
 export const rpc = createSolanaRpc('https://api.devnet.solana.com');
 
 export const key = (name: string) =>

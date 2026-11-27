@@ -49,8 +49,14 @@ export function computeUnits(units: number): Instruction {
   return { programAddress: COMPUTE_BUDGET_PROGRAM, accounts: [], data };
 }
 
+/** Slot of our last confirmed transaction: reads are never older than our own writes. */
+let lastSlot = BigInt((typeof localStorage !== 'undefined' && localStorage.getItem('tok.slot')) || 0);
+
 export async function accountData(a: Address): Promise<Uint8Array | null> {
-  const r = await rpc.getAccountInfo(a, { encoding: 'base64', commitment: 'confirmed' }).send();
+  const r = await rpc
+    .getAccountInfo(a, { encoding: 'base64', commitment: 'confirmed', ...(lastSlot ? { minContextSlot: lastSlot } : {}) })
+    .send()
+    .catch(async () => rpc.getAccountInfo(a, { encoding: 'base64', commitment: 'confirmed' }).send());
   if (!r.value) return null;
   return new Uint8Array(getBase64Encoder().encode(r.value.data[0]));
 }
@@ -110,7 +116,13 @@ export async function confirm(signature: string, timeoutMs = 60_000): Promise<vo
     const r = await rpc.getSignatureStatuses([signature as never]).send();
     const s = r.value[0];
     if (s?.err) throw new Error(`The network refused it: ${JSON.stringify(s.err)}`);
-    if (s && (s.confirmationStatus === 'confirmed' || s.confirmationStatus === 'finalized')) return;
+    if (s && (s.confirmationStatus === 'confirmed' || s.confirmationStatus === 'finalized')) {
+      if (s.slot > lastSlot) {
+        lastSlot = s.slot;
+        localStorage.setItem('tok.slot', String(lastSlot));
+      }
+      return;
+    }
     await new Promise((res) => setTimeout(res, 400));
   }
   throw new Error('Not confirmed after 60 s');
@@ -120,5 +132,6 @@ function readable(e: string): string {
   if (/AccountNotInitialized|0xbc4/.test(e)) return 'This link was already claimed, cancelled or returned.';
   if (/insufficient funds|0x1\b/.test(e)) return 'Not enough USDC in this wallet.';
   if (/already in use/.test(e)) return 'This link was already used.';
+  if (/0xbd2/.test(e)) return 'The wallet changed while signing. Try again.';
   return e;
 }

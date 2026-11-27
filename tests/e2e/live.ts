@@ -98,6 +98,27 @@ try {
   const bal = await rpc.getTokenAccountBalance(dest, { commitment: 'confirmed' }).send();
   if (bal.value.amount !== '500000') throw new Error(`moved amount ${bal.value.amount}`);
   console.log('PASS move to my wallet', target);
+
+  // Part 16: A charges as a merchant, B pays from Tok, A refunds once.
+  await a.goto(SITE + 'shop');
+  await a.getByLabel('Amount to charge').fill('0.2');
+  await a.getByRole('button', { name: 'Charge' }).click();
+  const tokPay = (await a.locator('.mono').first().textContent())!.trim();
+  await fund((await b.locator('body').evaluate(() => '')) || (await (async () => {
+    await b.goto(SITE + 'w');
+    await b.locator('a.mono').first().waitFor();
+    return (await b.locator('a.mono').first().textContent())!.trim();
+  })()) as Address, 300_000n);
+  await b.goto(tokPay);
+  await waitText(b, '0.20 USDC', 60_000);
+  await b.getByRole('button', { name: 'Pay' }).click();
+  await waitText(b, 'Paid ·', 120_000);
+  await waitText(a, 'Paid', 120_000);
+  await a.getByRole('button', { name: 'Refund' }).click();
+  await waitText(a, 'Refunded 0.20 USDC', 120_000);
+  await a.getByRole('button', { name: 'Refund' }).click();
+  await waitText(a, 'already refunded', 120_000);
+  console.log('PASS Solana Pay request found by reference, refunded to the payer once');
 } finally {
   await browser.close();
 }
