@@ -4,8 +4,11 @@ import { wakeServer } from './chain';
 import { PayScreen } from './screens/pay';
 import { ClaimScreen } from './screens/claim';
 import { WalletScreen } from './screens/wallet';
-import { ChatScreen } from './screens/chat';
-import { ShopScreen } from './screens/shop';
+import { lazy, Suspense } from 'preact/compat';
+
+// Chat and shop load only when opened, so the first screen downloads less.
+const ChatScreen = lazy(() => import('./screens/chat').then((m) => ({ default: m.ChatScreen })));
+const ShopScreen = lazy(() => import('./screens/shop').then((m) => ({ default: m.ShopScreen })));
 import { counter } from './counter';
 
 export type Route = 'pay' | 'claim' | 'wallet' | 'chat' | 'shop';
@@ -62,8 +65,10 @@ export function App() {
       {route === 'pay' && <PayScreen />}
       {route === 'claim' && <ClaimScreen />}
       {route === 'wallet' && <WalletScreen />}
-      {route === 'chat' && <ChatScreen />}
-      {route === 'shop' && <ShopScreen />}
+      <Suspense fallback={<div class="state"><div class="spinner" /></div>}>
+        {route === 'chat' && <ChatScreen />}
+        {route === 'shop' && <ShopScreen />}
+      </Suspense>
       {route !== 'claim' && (
         <nav class="tabs">
           {tab('pay', 'Pay')}
