@@ -23,7 +23,7 @@ jobs:
       - if: steps.sv.outputs.cache-hit != 'true'
         run: cargo install solana-verify --version 0.5.2 --locked
       - name: Build in solana-verify's Docker image
-        run: solana-verify build --library-name tok_claim
+        run: solana-verify build --library-name tok_claim --base-image solanafoundation/solana-verifiable-build:4.3.0
       - name: Hash
         run: |
           solana-verify get-executable-hash target/deploy/tok_claim.so | tee target/deploy/tok_claim.verify-hash

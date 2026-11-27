@@ -26,6 +26,7 @@ export const key = (name: string) =>
 export async function phone(browser: Browser, label: string) {
   const ctx = await browser.newContext({ viewport: { width: 400, height: 860 }, userAgent: 'Mozilla/5.0 (Linux; Android 15) Chrome/131 Mobile Safari/537.36' });
   const page = await ctx.newPage();
+  page.setDefaultNavigationTimeout(90_000);
   const cdp = await ctx.newCDPSession(page);
   await cdp.send('WebAuthn.enable');
   await cdp.send('WebAuthn.addVirtualAuthenticator', {

@@ -22,3 +22,6 @@ test-results/
 tests/fixtures/*.so
 supabase/.temp/
 FOUNDER-STEPS.txt
+video-tmp/
+*.mp4
+*.webm
