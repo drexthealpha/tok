@@ -19,6 +19,7 @@ import {
   USDC_MINT,
   walletAddress,
   walletAddressFor,
+  nextOdometer,
 } from '@tok/core';
 import {
   ata,
@@ -104,6 +105,27 @@ describe.skipIf(!haveSwigSo)('passkey wallet (part 2)', () => {
     const accounts = ix.accounts!.map((m) => (m.address === a.wallet ? { address: m.address, role: AccountRole.READONLY } : m));
     failed(await send(w, [{ ...ix, accounts }]));
     expect(usdcBalance(w, to)).toBe(0n);
+  });
+
+  it('a second signature from stale wallet data fails unless the device keeps the counter', async () => {
+    const a = await newWallet(w);
+    const from = await fundUsdc(w, a.wallet, 5_000_000n);
+    const to = await createAta(w, (await generateKeyPairSigner()).address);
+    const stale = a.load(); // read once, before either payment
+    const first = nextOdometer(stale, a.key.publicKey);
+    const sign = (odometer?: number) =>
+      passkeySign(stale, a.key.publicKey, [transfer(from, to, a.wallet, 1n)], {
+        payer: w.feePayer.address,
+        currentSlot: w.svm.getClock().slot,
+        signingFn: a.key.signingFn,
+        odometer,
+      });
+    ok(await send(w, await sign(first), w.feePayer, PASSKEY_COMPUTE_UNITS));
+    // Same stale data, counter from the chain as read: refused (Swig error 3026).
+    failed(await send(w, await sign(), w.feePayer, PASSKEY_COMPUTE_UNITS));
+    // Same stale data, counter kept on the device: accepted.
+    ok(await send(w, await sign(first + 1), w.feePayer, PASSKEY_COMPUTE_UNITS));
+    expect(usdcBalance(w, to)).toBe(2n);
   });
 
   it('"Move to my wallet" sends USDC to a typed Solana address (part 7)', async () => {

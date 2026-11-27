@@ -104,11 +104,10 @@ try {
   await a.getByLabel('Amount to charge').fill('0.2');
   await a.getByRole('button', { name: 'Charge' }).click();
   const tokPay = (await a.locator('.mono').first().textContent())!.trim();
-  await fund((await b.locator('body').evaluate(() => '')) || (await (async () => {
-    await b.goto(SITE + 'w');
-    await b.locator('a.mono').first().waitFor();
-    return (await b.locator('a.mono').first().textContent())!.trim();
-  })()) as Address, 300_000n);
+  await b.goto(SITE + 'w');
+  await b.locator('a.mono').first().waitFor();
+  const walletB = (await b.locator('a.mono').first().textContent())!.trim() as Address;
+  await fund(walletB, 300_000n);
   await b.goto(tokPay);
   await waitText(b, '0.20 USDC', 60_000);
   await b.getByRole('button', { name: 'Pay' }).click();
