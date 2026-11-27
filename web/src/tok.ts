@@ -30,6 +30,7 @@ import {
   USDC_MINT,
   walletAddress,
   walletAddressFor,
+  nextOdometer,
   type ClaimRecord,
   type RunTime,
 } from '@tok/core';
@@ -144,11 +145,18 @@ export async function balance(w: Wallet): Promise<bigint> {
 async function signWithPasskey(p: Passkey, w: Wallet, ixs: Instruction[]): Promise<Instruction[]> {
   const data = await accountData(w.swig);
   if (!data) throw new Error('Wallet not found');
-  return passkeySign(swigFromAccount(w.swig, data), publicKeyBytes(p), ixs, {
+  const swig = swigFromAccount(w.swig, data);
+  // Never reuse a counter: take the higher of the chain's and the last one used here.
+  const key = `tok.odo.${w.swig}`;
+  const odometer = Math.max(nextOdometer(swig, publicKeyBytes(p)), Number(localStorage.getItem(key) ?? 0) + 1);
+  const out = await passkeySign(swig, publicKeyBytes(p), ixs, {
     payer: await feePayer(),
     currentSlot: await slot(),
     signingFn: signer(p),
+    odometer,
   });
+  localStorage.setItem(key, String(odometer));
+  return out;
 }
 
 /** Sign instructions with the passkey wallet and send them, fees paid by the makers. */

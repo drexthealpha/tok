@@ -12,17 +12,20 @@ log=$(mktemp -d)
 node scripts/secret-scan.mjs >"$log/secrets" 2>&1 &
 pids="$!"
 if [ -n "$code" ]; then
-  npx eslint --max-warnings=0 $code >"$log/lint" 2>&1 &
+  npx eslint --cache --cache-location node_modules/.cache/eslint --max-warnings=0 $code >"$log/lint" 2>&1 &
   pids="$pids $!"
+  mkdir -p node_modules/.cache
   for p in packages/core server web tests; do
     if echo "$code" | grep -q "^$p/"; then
-      npx tsc -p "$p" >"$log/tsc-${p//\//-}" 2>&1 &
+      name=$(echo "$p" | tr '/' '-')
+      npx tsc -p "$p" --incremental --tsBuildInfoFile "node_modules/.cache/tsc-$name.tsbuildinfo" >"$log/tsc-$name" 2>&1 &
       pids="$pids $!"
     fi
   done
   unit=$(echo "$code" | grep -E '^(packages|server|web)/' || true)
   if [ -n "$unit" ]; then
-    npx vitest related --run --passWithNoTests $unit >"$log/tests" 2>&1 &
+    # Chain tests need Linux (LiteSVM) and run in CI; here only unit tests.
+    npx vitest related --run --passWithNoTests --maxWorkers=1 --exclude 'tests/**' $unit >"$log/tests" 2>&1 &
     pids="$pids $!"
   fi
 fi

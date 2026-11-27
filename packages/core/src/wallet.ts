@@ -70,7 +70,7 @@ export async function passkeySign(
   swig: Swig,
   passkeyPublicKey: Uint8Array,
   instructions: Instruction[],
-  opts: { payer: Address; currentSlot: bigint; signingFn: SigningFn },
+  opts: { payer: Address; currentSlot: bigint; signingFn: SigningFn; odometer?: number },
 ): Promise<Instruction[]> {
   const role = swig.findRolesByAuthoritySigner(passkeyPublicKey)[0];
   if (!role) throw new Error('This passkey does not own this wallet');
@@ -78,6 +78,13 @@ export async function passkeySign(
     payer: opts.payer as never,
     currentSlot: opts.currentSlot,
     signingFn: opts.signingFn,
+    ...(opts.odometer ? { odometer: opts.odometer } : {}),
   });
   return out as unknown as Instruction[];
+}
+
+/** The counter the next passkey signature must carry (the role's counter + 1). */
+export function nextOdometer(swig: Swig, passkeyPublicKey: Uint8Array): number {
+  const role = swig.findRolesByAuthoritySigner(passkeyPublicKey)[0] as unknown as { odometer?: () => number } | undefined;
+  return role?.odometer ? role.odometer() : 1;
 }

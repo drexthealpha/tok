@@ -56,7 +56,18 @@ export async function accountData(a: Address): Promise<Uint8Array | null> {
   const r = await rpc
     .getAccountInfo(a, { encoding: 'base64', commitment: 'confirmed', ...(lastSlot ? { minContextSlot: lastSlot } : {}) })
     .send()
-    .catch(async () => rpc.getAccountInfo(a, { encoding: 'base64', commitment: 'confirmed' }).send());
+    .catch(async () => {
+      // The node has not reached our last write yet: wait for it, never read older state.
+      for (let i = 0; i < 10; i++) {
+        await new Promise((r) => setTimeout(r, 500));
+        const x = await rpc
+          .getAccountInfo(a, { encoding: 'base64', commitment: 'confirmed', minContextSlot: lastSlot })
+          .send()
+          .catch(() => null);
+        if (x) return x;
+      }
+      throw new Error('The network is behind. Try again in a moment.');
+    });
   if (!r.value) return null;
   return new Uint8Array(getBase64Encoder().encode(r.value.data[0]));
 }
