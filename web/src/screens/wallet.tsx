@@ -5,6 +5,7 @@ import { useMe } from '../me';
 import { cancel, refreshSent, returnExpired, runs, sendTo, sentLinks, type SentLink } from '../tok';
 import { EXPLORER_ADDR } from '../config';
 import { LOSS } from './claim';
+import { PollarWallet } from './pollar-wallet';
 
 export function WalletScreen() {
   const me = useMe();
@@ -32,6 +33,7 @@ export function WalletScreen() {
           I already have a Tok passkey
         </button>
         {msg && <div class="small bad">{msg}</div>}
+        <PollarWallet />
       </div>
     );
   }
@@ -111,6 +113,7 @@ export function WalletScreen() {
           Link to confirmed claim: {clm.runs} runs, median {Math.round(clm.median)} ms, slowest {Math.round(clm.slowest)} ms
         </div>
       )}
+      <PollarWallet />
       <div class="small">{LOSS}</div>
       <div class="small">
         <a href={EXPLORER_ADDR(w.swig)} target="_blank" rel="noreferrer">Swig wallet account</a>

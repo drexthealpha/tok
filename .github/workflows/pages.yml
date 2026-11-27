@@ -29,6 +29,10 @@ jobs:
         with: { node-version: 22, cache: pnpm }
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @tok/web build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_POLLAR_KEY: ${{ secrets.VITE_POLLAR_KEY }}
       - uses: actions/upload-pages-artifact@v3
         with: { path: web/dist }
       - id: deployment

@@ -2,7 +2,9 @@ import { useEffect, useState } from 'preact/hooks';
 import { formatAmount, inAppBrowser, openInBrowser } from '@tok/core';
 import { createPasskey, MWA_MARK, passkeysAvailable, savedPasskey } from '../passkey';
 import { connectWallet, inApp } from '../mwa';
-import { claim, readLink, sendTo, walletFor, type LinkState, type OpenedLink } from '../tok';
+import { claim, claimInto, readLink, sendTo, walletFor, type LinkState, type OpenedLink } from '../tok';
+import { pollarReady, sendCode, verifyCode } from '../pollar';
+import type { Address } from '@solana/kit';
 import { counter } from '../counter';
 import { EXPLORER } from '../config';
 import { go } from '../app';
@@ -150,6 +152,7 @@ export function ClaimScreen() {
             Open in your browser
           </button>
           <div class="small">{app ? `${app}'s own browser` : 'This browser'} cannot make a passkey.</div>
+          {pollarReady && <EmailClaim opened={view.opened} openedAt={openedAt} onDone={(signature) => setView({ s: 'received', opened: view.opened, signature })} />}
         </div>
       )}
 
@@ -199,5 +202,47 @@ export function ClaimScreen() {
         </div>
       )}
     </div>
+  );
+}
+
+/** Receive by email instead: a Pollar wallet, no passkey needed. */
+function EmailClaim({ opened, openedAt, onDone }: { opened: OpenedLink; openedAt: number; onDone: (sig: string) => void }) {
+  const [email, setEmail] = useState('');
+  const [code, setCode] = useState('');
+  const [step, setStep] = useState<'email' | 'code' | 'busy'>('email');
+  const [err, setErr] = useState<string | null>(null);
+  return (
+    <form
+      class="card stack"
+      onSubmit={async (e) => {
+        e.preventDefault();
+        setErr(null);
+        try {
+          if (step === 'email') {
+            setStep('busy');
+            await sendCode(email);
+            setStep('code');
+          } else if (step === 'code') {
+            setStep('busy');
+            const addr = await verifyCode(code);
+            onDone(await claimInto(addr as Address, opened, openedAt));
+          }
+        } catch (x) {
+          setErr((x as Error).message);
+          setStep(code ? 'code' : 'email');
+        }
+      }}
+    >
+      <div class="small">Or receive with your email (Pollar wallet)</div>
+      {step !== 'code' ? (
+        <input type="text" inputMode="email" autoComplete="email" placeholder="you@example.com" value={email} onInput={(e) => setEmail((e.target as HTMLInputElement).value)} />
+      ) : (
+        <input type="text" inputMode="numeric" autoComplete="one-time-code" placeholder="Code from the email" value={code} onInput={(e) => setCode((e.target as HTMLInputElement).value)} />
+      )}
+      <button class="ghost" type="submit" disabled={step === 'busy'}>
+        {step === 'busy' ? '…' : step === 'email' ? 'Send code' : 'Receive'}
+      </button>
+      {err && <div class="small bad">{err}</div>}
+    </form>
   );
 }

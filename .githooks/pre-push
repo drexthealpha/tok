@@ -3,10 +3,8 @@
 set -euo pipefail
 start=$(date +%s)
 changed=$(git diff --name-only --diff-filter=ACMR "@{push}" 2>/dev/null || git diff --name-only HEAD~1)
-# Secret scan: no private keys, keypair arrays or API keys in what is pushed.
-if git diff "@{push}" 2>/dev/null | grep -nE '^\+.*(BEGIN [A-Z ]*PRIVATE KEY|\[([0-9]{1,3},){63}[0-9]{1,3}\]|sk-[A-Za-z0-9]{20,}|fc-[a-f0-9]{32}|eyJhbGciOi[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}\.)' ; then
-  echo "pre-push: possible secret in the diff"; exit 1
-fi
+# Secret scan: exact partner keys (by hash) and key patterns.
+node scripts/secret-scan.mjs
 lintable=$(echo "$changed" | grep -E ".(ts|tsx|js|mjs)$" | grep -v "^android/" || true)
 if [ -n "$lintable" ]; then npx eslint --max-warnings=0 $lintable; fi
 for p in packages/core server web; do

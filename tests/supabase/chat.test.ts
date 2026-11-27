@@ -41,7 +41,7 @@ describe.skipIf(!on)('chat on Supabase (part 8)', () => {
       { chat_id: chatId, wallet: B },
     ]);
     if (m.error) throw m.error;
-  });
+  }, 60_000);
 
   afterAll(async () => {
     await Promise.all([a, b, outsider].map((c) => c?.removeAllChannels()));

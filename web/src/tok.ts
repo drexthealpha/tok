@@ -290,6 +290,25 @@ export async function claim(p: Passkey, opened: OpenedLink, openedAt: number): P
   return signature;
 }
 
+/**
+ * Claim into any wallet address, for example a Pollar wallet made by email
+ * sign-in. The claim key signs; the makers pay for the USDC account.
+ */
+export async function claimInto(owner: Address, opened: OpenedLink, openedAt: number): Promise<string> {
+  if (!opened.record) throw new Error('This link was already claimed, cancelled or returned.');
+  const tp = await tokenProgram();
+  const c = await claimInstruction({
+    claimKey: opened.claimKey,
+    rentPayer: opened.record.rentPayer,
+    mint: USDC_MINT,
+    tokenProgram: tp,
+    receiverTokens: await usdcAccount(owner),
+  });
+  const signature = await relay([await createAtaIdempotent(await feePayer(), owner), c], [opened.seedSigner]);
+  logRun({ kind: 'claim', ms: performance.now() - openedAt, signature, at: new Date().toISOString() });
+  return signature;
+}
+
 /* ---------- after a claim, and the sender's controls ---------- */
 
 export async function cancel(p: Passkey, w: Wallet, claimKey: Address): Promise<string> {

@@ -16,6 +16,14 @@ env:
   SOLANA_VERSION: v4.3.0
 
 jobs:
+  secrets:
+    name: secret scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - run: node scripts/secret-scan.mjs
+
   check:
     name: lint and types
     runs-on: ubuntu-latest

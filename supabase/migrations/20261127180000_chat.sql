@@ -84,3 +84,9 @@ create policy voice_write on storage.objects for insert with check (
 );
 
 alter publication supabase_realtime add table public.messages;
+
+-- Explicit grants: row level security above decides which rows.
+grant usage on schema public to anon, authenticated;
+grant select on public.profiles to authenticated;
+grant select, insert on public.chats, public.members, public.messages to authenticated;
+grant execute on function public.my_wallets(), public.is_member(uuid) to authenticated;
