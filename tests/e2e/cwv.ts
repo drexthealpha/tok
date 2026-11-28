@@ -13,7 +13,7 @@ import { SITE } from './lib';
 
 const runs = Number(process.argv[2] ?? 5);
 const here = dirname(fileURLToPath(import.meta.url));
-const vitals = readFileSync(join(here, '..', 'node_modules', 'web-vitals', 'dist', 'web-vitals.iife.js'), 'utf8');
+const vitals = readFileSync(join(here, '..', 'node_modules', 'web-vitals', 'dist', 'web-vitals.attribution.iife.js'), 'utf8');
 
 const p75 = (xs: number[]) => [...xs].sort((a, b) => a - b)[Math.ceil(xs.length * 0.75) - 1]!;
 const browser = await chromium.launch();
@@ -35,7 +35,7 @@ try {
     await cdp.send('Network.setCacheDisabled', { cacheDisabled: true });
     await page.addInitScript(`${vitals};
       window.__v = {};
-      webVitals.onLCP((m) => (window.__v.lcp = m.value), { reportAllChanges: true });
+      webVitals.onLCP((m) => { window.__v.lcp = m.value; const a = m.attribution || {}; window.__v.lcpWhy = (a.target || '?') + ' ttfb ' + Math.round(a.timeToFirstByte || 0) + ' loadDelay ' + Math.round(a.resourceLoadDelay || 0) + ' loadTime ' + Math.round(a.resourceLoadDuration || 0) + ' renderDelay ' + Math.round(a.elementRenderDelay || 0); }, { reportAllChanges: true });
       webVitals.onCLS((m) => (window.__v.cls = m.value), { reportAllChanges: true });
       webVitals.onINP((m) => (window.__v.inp = m.value), { reportAllChanges: true });`);
     await page.goto(SITE, { waitUntil: 'load' });
@@ -53,9 +53,9 @@ try {
       document.dispatchEvent(new Event('visibilitychange'));
     });
     await page.waitForTimeout(300);
-    const v = (await page.evaluate(() => (window as unknown as { __v: Record<string, number> }).__v)) as { lcp: number; cls: number; inp: number };
+    const v = (await page.evaluate(() => (window as unknown as { __v: Record<string, number> }).__v)) as { lcp: number; cls: number; inp: number; lcpWhy?: string };
     out.push({ lcp: v.lcp ?? NaN, cls: v.cls ?? 0, inp: v.inp ?? NaN });
-    console.log(`run ${i + 1}: LCP ${Math.round(v.lcp)} ms, INP ${Math.round(v.inp)} ms, CLS ${(v.cls ?? 0).toFixed(3)}`);
+    console.log(`run ${i + 1}: LCP ${Math.round(v.lcp)} ms, INP ${Math.round(v.inp)} ms, CLS ${(v.cls ?? 0).toFixed(3)} | LCP ${v.lcpWhy}`);
     await ctx.close();
   }
   const lcp = p75(out.map((o) => o.lcp));
