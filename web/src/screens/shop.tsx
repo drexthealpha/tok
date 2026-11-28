@@ -16,7 +16,7 @@ import {
 } from '@tok/core';
 import { useMe } from '../me';
 import { rpc } from '../chain';
-import { createAtaIdempotent, sendFromWallet, tokenProgram, transferChecked, usdcAccount } from '../tok';
+import { createAtaIdempotent, sendFromWallet, tokenProgram, transferChecked, usdcAccount, walletFor } from '../tok';
 import { EXPLORER, SITE } from '../config';
 import { feePayer, relay } from '../chain';
 import { counter } from '../counter';
@@ -29,13 +29,16 @@ interface Found {
 
 /** Pay a Solana Pay transfer request from the passkey wallet, with its reference. */
 async function payRequest(me: ReturnType<typeof useMe>, r: TransferRequest): Promise<string> {
-  if (!me.passkey || !me.wallet?.exists) throw new Error('Make your wallet first');
+  if (!me.passkey) throw new Error('Make your wallet first');
+  // A tap right after the page opens can come before the wallet has loaded.
+  const w = me.wallet ?? (await walletFor(me.passkey));
+  if (!w.exists) throw new Error('Make your wallet first');
   const tp = await tokenProgram();
-  const ix = withReference(transferChecked(await usdcAccount(me.wallet.address), await usdcAccount(r.recipient), me.wallet.address, r.amount, tp), r.reference);
+  const ix = withReference(transferChecked(await usdcAccount(w.address), await usdcAccount(r.recipient), w.address, r.amount, tp), r.reference);
   const ata = await createAtaIdempotent(await feePayer(), r.recipient);
   await relay([ata]);
   const extra = r.message ? [memoInstruction(r.message)] : [];
-  return sendFromWallet(me.passkey, me.wallet, [ix, ...extra]);
+  return sendFromWallet(me.passkey, w, [ix, ...extra]);
 }
 
 /** The merchant view: find the payment by its reference and check the amount. */
