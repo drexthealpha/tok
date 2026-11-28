@@ -2,7 +2,7 @@ import { useEffect, useState } from 'preact/hooks';
 import { isAddress } from '@solana/kit';
 import { ARGON2_SETTINGS, formatAmount, parseAmount, summarise, timeOneTry } from '@tok/core';
 import { useMe } from '../me';
-import { cancel, refreshSent, returnExpired, runs, sendTo, sentLinks, type SentLink } from '../tok';
+import { balance, cancel, refreshSent, returnExpired, runs, sendTo, sentLinks, type SentLink } from '../tok';
 import { EXPLORER_ADDR } from '../config';
 import { LOSS } from './claim';
 import { PollarWallet } from './pollar-wallet';
@@ -47,7 +47,8 @@ export function WalletScreen() {
     setMsg('Confirm with your face or fingerprint');
     try {
       if (!isAddress(to.trim())) throw new Error('That is not a Solana address');
-      const amount = amt ? parseAmount(amt) : (me.usdc ?? 0n);
+      // A tap before the balance has loaded reads it now.
+      const amount = amt ? parseAmount(amt) : (me.usdc ?? (w?.exists ? await balance(w) : 0n));
       if (amount <= 0n) throw new Error('Nothing to move');
       const sig = await sendTo(me.passkey!, w, to, amount);
       setMsg(`Moved ${formatAmount(amount)} USDC · ${sig.slice(0, 10)}…`);
