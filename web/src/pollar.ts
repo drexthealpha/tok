@@ -86,7 +86,14 @@ export function savedPollarWallet(): string | null {
 /** Send USDC (base units) from the Pollar wallet; Pollar pays the fee. */
 export async function sendFromPollar(destination: string, units: bigint): Promise<string> {
   const c = await pc();
+  // After a page load the session is restored in the background: wait for it.
+  await waitFor(c, (s) => s.step === 'authenticated' && s.verified, 30_000).catch(() => {
+    throw new Error('Sign in again with your email to send from the Pollar wallet');
+  });
   const out = await c.sendPayment({ chain: 'SOLANA', destination, amount: units.toString(), mint: USDC_MINT });
   if (out.status === 'success' || out.status === 'pending') return out.hash;
+  if (out.status === 'error') {
+    throw new Error(`Pollar did not send: ${[out.code, out.message, out.details].filter(Boolean).join(': ') || 'error'}`);
+  }
   throw new Error(`Pollar did not send: ${out.status}`);
 }

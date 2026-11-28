@@ -20,7 +20,7 @@ type View =
   | { s: 'gone' }
   | { s: 'ready'; opened: OpenedLink }
   | { s: 'claiming'; opened: OpenedLink }
-  | { s: 'received'; opened: OpenedLink; signature: string }
+  | { s: 'received'; opened: OpenedLink; signature: string; byEmail?: boolean }
   | { s: 'failed'; opened: OpenedLink; reason: string };
 
 export function ClaimScreen() {
@@ -152,7 +152,7 @@ export function ClaimScreen() {
             Open in your browser
           </button>
           <div class="small">{app ? `${app}'s own browser` : 'This browser'} cannot make a passkey.</div>
-          {pollarReady && <EmailClaim opened={view.opened} openedAt={openedAt} onDone={(signature) => setView({ s: 'received', opened: view.opened, signature })} />}
+          {pollarReady && <EmailClaim opened={view.opened} openedAt={openedAt} onDone={(signature) => setView({ s: 'received', opened: view.opened, signature, byEmail: true })} />}
         </div>
       )}
 
@@ -165,7 +165,7 @@ export function ClaimScreen() {
       {view.s === 'ready' && !blocked && pollarReady && !inApp() && (
         <details>
           <summary class="small">Receive with email instead</summary>
-          <EmailClaim opened={view.opened} openedAt={openedAt} onDone={(signature) => setView({ s: 'received', opened: view.opened, signature })} />
+          <EmailClaim opened={view.opened} openedAt={openedAt} onDone={(signature) => setView({ s: 'received', opened: view.opened, signature, byEmail: true })} />
         </details>
       )}
 
@@ -191,21 +191,30 @@ export function ClaimScreen() {
               {view.signature.slice(0, 16)}…
             </a>
           </div>
-          <div class="small">{LOSS}</div>
-          <div class="row">
-            <button class="ghost" onClick={() => sendBack(view.opened)}>Send back</button>
-            <button class="ghost" onClick={() => go('wallet')}>Move to my wallet</button>
-          </div>
-          {backState && <div class="small">{backState}</div>}
-          <button
-            class="primary"
-            onClick={() => {
-              sessionStorage.setItem('tok.chatWith', view.opened.record!.sender);
-              go('chat');
-            }}
-          >
-            Chat with the sender
-          </button>
+          {view.byEmail ? (
+            <>
+              <div class="small">In your Pollar wallet. Send it on from the Wallet tab; Pollar pays the fee.</div>
+              <button class="primary" onClick={() => go('wallet')}>Wallet</button>
+            </>
+          ) : (
+            <>
+              <div class="small">{LOSS}</div>
+              <div class="row">
+                <button class="ghost" onClick={() => sendBack(view.opened)}>Send back</button>
+                <button class="ghost" onClick={() => go('wallet')}>Move to my wallet</button>
+              </div>
+              {backState && <div class="small">{backState}</div>}
+              <button
+                class="primary"
+                onClick={() => {
+                  sessionStorage.setItem('tok.chatWith', view.opened.record!.sender);
+                  go('chat');
+                }}
+              >
+                Chat with the sender
+              </button>
+            </>
+          )}
         </div>
       )}
     </div>

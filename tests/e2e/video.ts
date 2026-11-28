@@ -80,6 +80,11 @@ try {
   const recStart = Date.now();
   const marks: number[] = [];
   const mark = () => marks.push((Date.now() - recStart) / 1000);
+  let last = Date.now();
+  const step = (name: string) => {
+    console.log('step ' + name + ' ' + ((Date.now() - last) / 1000).toFixed(1) + ' s');
+    last = Date.now();
+  };
   mark();
 
   // 0:00 to 0:15 the one line.
@@ -155,6 +160,7 @@ try {
   // 2:15 to 2:35: cancel, send back, merchant refund, move to wallet.
   mark();
   await a.goto(SITE + '?count');
+  step('chat');
   await cap(a, 'Cancel a second link before it is claimed');
   await a.getByLabel('Amount in USDC').fill('0.25');
   await pause(a, 1500);
@@ -163,22 +169,41 @@ try {
   await a.goto(SITE + 'w');
   await a.getByRole('button', { name: 'Cancel' }).first().click();
   await see(a, 'Cancelled').catch(() => undefined);
+  step('cancel');
+  // Send back: B receives a small link and returns it to the sender.
+  await a.goto(SITE);
+  await a.getByLabel('Amount in USDC').fill('0.2');
+  await a.getByRole('button', { name: 'Pay', exact: true }).click();
+  await see(a, 'Paid into a link');
+  const small = (await a.locator('.card.mono').textContent())!.trim();
+  await b.goto(small);
+  await cap(b, 'Send back: the receiver returns a payment');
+  await b.getByRole('button', { name: /Receive/ }).click();
+  await see(b, 'Received');
+  await b.getByRole('button', { name: 'Send back' }).click();
+  await see(b, 'Sent back').catch(() => undefined);
+  step('send back');
   await b.goto(SITE + 'w');
   await cap(b, 'Move to my wallet: any Solana address, for example Solflare');
   await b.locator('input[placeholder^="Solana address"]').fill('9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM');
   await b.locator('input[inputmode=decimal]').fill('0.1');
   await b.getByRole('button', { name: 'Move' }).click();
-  await see(b, 'Moved', 120_000).catch(() => undefined);
+  await see(b, 'Moved', 60_000).catch(() => undefined);
+  step('move');
   await cap(a, 'Merchant view: a Solana Pay request, found by its reference, refunded to the payer');
   await a.goto(SITE + 'shop');
   await a.getByLabel('Amount to charge').fill('0.2');
   await a.getByRole('button', { name: 'Charge' }).click();
   const tokPay = (await a.locator('.mono').first().textContent())!.trim();
   await b.goto(tokPay);
-  await b.getByRole('button', { name: 'Pay' }).click();
-  await see(a, 'Paid', 120_000).catch(() => undefined);
+  await b.getByRole('button', { name: 'Pay', exact: true }).click();
+  await see(b, 'Paid ·', 60_000).catch(() => undefined);
+  step('shop paid');
+  await a.getByRole('button', { name: 'Refund' }).waitFor({ timeout: 60_000 }).catch(() => undefined);
+  step('merchant saw it');
   await a.getByRole('button', { name: 'Refund' }).click().catch(() => undefined);
-  await see(a, 'Refunded', 120_000).catch(() => undefined);
+  await see(a, 'Refunded', 60_000).catch(() => undefined);
+  step('refund');
 
   // 2:35 to 2:50: closing.
   mark();
@@ -195,7 +220,7 @@ try {
   // Each section of the design's script gets its slot. Real devnet waits make
   // some sections longer than their slot: those play faster, and the video
   // says so on screen ("2.4x speed"). Nothing is cut out.
-  const slots = [15, 45, 35, 40, 20, 15];
+  const slots = [12, 40, 30, 45, 33, 10];
   const parts: string[] = [];
   const labels: string[] = [];
   for (let i = 0; i < slots.length; i++) {
