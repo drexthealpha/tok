@@ -34,6 +34,7 @@ export function WalletScreen() {
         </button>
         {msg && <div class="small bad">{msg}</div>}
         <PollarWallet />
+        <ArgonTimer />
       </div>
     );
   }
