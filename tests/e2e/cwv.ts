@@ -53,7 +53,7 @@ try {
       document.dispatchEvent(new Event('visibilitychange'));
     });
     await page.waitForTimeout(300);
-    const v = (await page.evaluate(() => (window as unknown as { __v: Record<string, number> }).__v)) as { lcp: number; cls: number; inp: number; lcpWhy?: string };
+    const v = (await page.evaluate(() => (window as unknown as { __v: Record<string, number> }).__v)) as unknown as { lcp: number; cls: number; inp: number; lcpWhy?: string };
     out.push({ lcp: v.lcp ?? NaN, cls: v.cls ?? 0, inp: v.inp ?? NaN });
     console.log(`run ${i + 1}: LCP ${Math.round(v.lcp)} ms, INP ${Math.round(v.inp)} ms, CLS ${(v.cls ?? 0).toFixed(3)} | LCP ${v.lcpWhy}`);
     await ctx.close();
