@@ -76,7 +76,7 @@ try {
   await a.getByRole('button', { name: 'Make my wallet' }).click();
   await a.locator('a.mono').first().waitFor({ timeout: 120_000 });
   const wa = (await a.locator('a.mono').first().textContent())!.trim();
-  await fund(wa as never, 5_000_000n);
+  await fund(wa as never, 2_000_000n);
   const recStart = Date.now();
   const marks: number[] = [];
   const mark = () => marks.push((Date.now() - recStart) / 1000);
@@ -90,6 +90,7 @@ try {
   // 0:00 to 0:15 the one line.
   await a.goto(SITE + '?count');
   await b.goto(SITE);
+  step('intro loaded');
   await cap(a, 'Pay anyone with a link in the chat app they already use');
   await cap(b, 'They confirm with face or fingerprint. No app. Solana devnet.');
   await pause(a, 12000);
@@ -98,10 +99,11 @@ try {
   mark();
   await cap(a, 'Phone A: type an amount, tap Pay, confirm with the passkey');
   await cap(b, 'Phone B: waiting for the link');
-  await a.getByLabel('Amount in USDC').fill('2');
+  await a.getByLabel('Amount in USDC').fill('1');
   await pause(a, 2500);
   await a.getByRole('button', { name: 'Pay', exact: true }).click();
   await see(a, 'Paid into a link');
+  step('pay');
   const link = (await a.locator('.card.mono').textContent())!.trim();
   await cap(a, 'USDC is in the claim account. The link goes into any chat app (WhatsApp, SMS)');
   await pause(a, 8000);
@@ -110,11 +112,12 @@ try {
   mark();
   await b.goto(link + '');
   await cap(b, 'Phone B: tap the link, then Receive, and confirm');
-  await see(b, '2 USDC', 60_000);
+  await see(b, '1 USDC', 60_000);
   await pause(b, 2500);
   await b.getByRole('button', { name: /Receive/ }).click();
   await cap(b, 'Claiming on devnet');
   await see(b, 'Received');
+  step('receive');
   await cap(b, 'Received: a new wallet, no app, no seed phrase, no SOL');
   await pause(b, 6000);
   const wbLink = await b.evaluate(() => localStorage.getItem('tok.passkey'));
@@ -125,12 +128,15 @@ try {
   await b.getByRole('button', { name: 'Chat with the sender' }).click();
   await cap(b, 'Tok chat (Supabase): pay, request, split, voice, previews, Actions');
   await b.locator('.composer').waitFor({ timeout: 60_000 });
+  step('chat open B');
   await a.goto(SITE + 'chat');
   await cap(a, 'Same chat on phone A');
   await a.locator('.list > div', { hasText: '›' }).first().click({ timeout: 60_000 });
   await a.locator('.composer').waitFor({ timeout: 60_000 });
+  step('chat open A');
   await submit(b, 'Thanks! https://solana.com');
   await see(a, 'Thanks!', 30_000);
+  step('message');
   await mode(a, 'Request');
   await cap(a, 'Request 0.50');
   await submit(a, '0.5');
@@ -138,6 +144,7 @@ try {
   await cap(b, 'Pay the request from its bubble');
   await b.locator('.bubble button', { hasText: 'Pay' }).first().click();
   await see(a, 'Paid ·', 120_000).catch(() => undefined);
+  step('request paid');
   await mode(a, 'Split');
   await cap(a, 'Split 1 USDC: one share per member');
   await submit(a, '1');
@@ -150,11 +157,13 @@ try {
     await pause(b, 4000);
     await mic.click();
     await a.locator('.bubble .small', { hasText: /lunch|dollars|\$5/i }).first().waitFor({ timeout: 90_000 }).catch(() => undefined);
+  step('voice');
   }
   await mode(a, 'Aa');
   await cap(a, 'A Solana Action becomes buttons in the chat');
   await submit(a, 'solana-action:https://tok-server.onrender.com/api/actions/pay');
   await b.locator('.card.action button', { hasText: '1 USDC' }).waitFor({ timeout: 90_000 }).catch(() => undefined);
+  step('action');
   await pause(b, 3000);
 
   // 2:15 to 2:35: cancel, send back, merchant refund, move to wallet.

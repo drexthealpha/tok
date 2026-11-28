@@ -4,12 +4,14 @@
  * Reads the two times the page logs for each run: Pay tap to confirmed
  * deposit, and link opened to confirmed claim. Prints the deposit and claim
  * signatures for the cost script.
- * Run: npx tsx tests/e2e/runs.ts [N]
+ * Run: npx tsx tests/e2e/runs.ts [N] [USDC per link]
  */
 import { chromium } from 'playwright';
 import { fund, phone, SITE, waitText } from './lib';
 
 const n = Number(process.argv[2] ?? 10);
+const each = process.argv[3] ?? '0.1'; // USDC per link
+const units = BigInt(Math.round(Number(each) * 1e6));
 const browser = await chromium.launch();
 const pay: number[] = [];
 const claim: number[] = [];
@@ -21,10 +23,10 @@ try {
   await a.getByRole('button', { name: 'Make my wallet' }).click();
   await a.locator('a.mono').first().waitFor({ timeout: 120_000 });
   const wa = (await a.locator('a.mono').first().textContent())!.trim();
-  await fund(wa as never, BigInt(n) * 100_000n);
+  await fund(wa as never, BigInt(n) * units);
   for (let i = 0; i < n; i++) {
     await a.goto(SITE);
-    await a.getByLabel('Amount in USDC').fill('0.1');
+    await a.getByLabel('Amount in USDC').fill(each);
     await waitText(a, 'in wallet', 60_000);
     await a.getByRole('button', { name: 'Pay', exact: true }).click();
     await waitText(a, 'Paid into a link');
@@ -34,7 +36,7 @@ try {
 
     const b = await phone(browser, `B${i}`);
     await b.goto(link);
-    await waitText(b, '0.10 USDC', 60_000);
+    await waitText(b, `${Number(each).toFixed(2)} USDC`, 60_000);
     await b.getByRole('button', { name: /Receive/ }).click();
     await waitText(b, 'Received');
     const runsB = (await b.evaluate(() => JSON.parse(localStorage.getItem('tok.runs') ?? '[]'))) as { kind: string; ms: number; signature: string }[];
