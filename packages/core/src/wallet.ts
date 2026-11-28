@@ -83,6 +83,24 @@ export async function passkeySign(
   return out as unknown as Instruction[];
 }
 
+/**
+ * Swig's raw WebAuthn form (authentication kind 2): the authenticator data
+ * and the exact clientDataJSON the browser signed. Swig checks the challenge
+ * and type inside it and hashes it as is, so it works whatever extra keys a
+ * browser adds (Chrome sometimes adds a random one on purpose; Android apps
+ * add androidPackageName). The rebuilt form (kind 1) fails on those.
+ */
+export function rawWebAuthnPrefix(authenticatorData: Uint8Array, clientDataJSON: Uint8Array): Uint8Array {
+  const out = new Uint8Array(2 + 2 + authenticatorData.length + 2 + clientDataJSON.length);
+  const v = new DataView(out.buffer);
+  v.setUint16(0, 2, true);
+  v.setUint16(2, authenticatorData.length, true);
+  out.set(authenticatorData, 4);
+  v.setUint16(4 + authenticatorData.length, clientDataJSON.length, true);
+  out.set(clientDataJSON, 6 + authenticatorData.length);
+  return out;
+}
+
 /** The counter the next passkey signature must carry (the role's counter + 1). */
 export function nextOdometer(swig: Swig, passkeyPublicKey: Uint8Array): number {
   const role = swig.findRolesByAuthoritySigner(passkeyPublicKey)[0] as unknown as { odometer?: () => number } | undefined;

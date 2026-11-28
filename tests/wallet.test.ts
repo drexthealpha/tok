@@ -107,6 +107,28 @@ describe.skipIf(!haveSwigSo)('passkey wallet (part 2)', () => {
     expect(usdcBalance(w, to)).toBe(0n);
   });
 
+  it('a browser that adds keys to clientDataJSON: rebuilt form fails, raw form passes', async () => {
+    for (const raw of [false, true]) {
+      const key = softPasskey('https://tok.test', 'tok.test', { raw, extraKey: true });
+      ok(await send(w, [await createWalletInstruction(key.publicKey, w.feePayer.address)]));
+      const swigAddr = await swigAccountFor(key.publicKey);
+      const acc = w.svm.getAccount(swigAddr);
+      if (!acc.exists) throw new Error('no swig');
+      const swig = swigFromAccount(swigAddr, acc.data);
+      const wallet = await walletAddress(swig);
+      const from = await fundUsdc(w, wallet, 1_000_000n);
+      const to = await createAta(w, (await generateKeyPairSigner()).address);
+      const ixs = await passkeySign(swig, key.publicKey, [transfer(from, to, wallet, 1n)], {
+        payer: w.feePayer.address,
+        currentSlot: w.svm.getClock().slot,
+        signingFn: key.signingFn,
+      });
+      const r = await send(w, ixs, w.feePayer, PASSKEY_COMPUTE_UNITS);
+      if (raw) ok(r);
+      else failed(r);
+    }
+  });
+
   it('a second signature from stale wallet data fails unless the device keeps the counter', async () => {
     const a = await newWallet(w);
     const from = await fundUsdc(w, a.wallet, 5_000_000n);

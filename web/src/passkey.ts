@@ -4,7 +4,8 @@
  */
 import { p256 } from '@noble/curves/nist.js';
 import { sha256 } from '@noble/hashes/sha2.js';
-import { getSecp256r1WebAuthnSigningFn, type SigningFn } from '@swig-wallet/lib';
+import type { SigningFn } from '@swig-wallet/lib';
+import { rawWebAuthnSigner } from './webauthn';
 import { swigAccountFor } from '@tok/core';
 import { accountData } from './chain';
 
@@ -88,12 +89,7 @@ export async function createPasskey(): Promise<Passkey> {
 
 /** Signs a Swig message with the passkey (one face or fingerprint prompt). */
 export function signer(p: Passkey): SigningFn {
-  return getSecp256r1WebAuthnSigningFn({
-    rpId: location.hostname,
-    allowCredentials: [{ type: 'public-key', id: unb64u(p.credentialId) }],
-    userVerification: 'required',
-    timeout: 120_000,
-  });
+  return rawWebAuthnSigner(unb64u(p.credentialId), location.hostname);
 }
 
 /**
