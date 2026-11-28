@@ -162,6 +162,13 @@ export function ClaimScreen() {
         </button>
       )}
 
+      {view.s === 'ready' && !blocked && pollarReady && !inApp() && (
+        <details>
+          <summary class="small">Receive with email instead</summary>
+          <EmailClaim opened={view.opened} openedAt={openedAt} onDone={(signature) => setView({ s: 'received', opened: view.opened, signature })} />
+        </details>
+      )}
+
       {view.s === 'claiming' && (
         <div class="state">
           <div class="spinner" />

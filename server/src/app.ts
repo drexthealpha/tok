@@ -55,6 +55,21 @@ export function createApp(deps: Deps) {
 
   app.get('/health', (c) => c.json({ ok: true }));
 
+  /** shields.io endpoint badge: "up" when the server and Kora both answer. */
+  app.get('/badge', async (c) => {
+    const kora = await deps.kora.payer().then(
+      () => true,
+      () => false,
+    );
+    return c.json({
+      schemaVersion: 1,
+      label: 'live demo',
+      message: kora ? 'up' : 'fee relayer down',
+      color: kora ? 'brightgreen' : 'red',
+      cacheSeconds: 300,
+    });
+  });
+
   app.get('/config', async (c) =>
     c.json({ feePayer: await deps.kora.payer(), allowedPrograms: ALLOWED_PROGRAMS }),
   );

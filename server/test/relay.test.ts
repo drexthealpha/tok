@@ -107,3 +107,12 @@ describe('relay (part 3)', () => {
     expect(j.allowedPrograms).toContain('2pZCUFv63kde6rkaAaZ3GGhUu4u4jzM8kBcyshZ9qauH');
   });
 });
+
+describe('status badge', () => {
+  it('says up when Kora answers, and fee relayer down when it does not', async () => {
+    const up = createApp({ kora: { payer: async () => 'x', signAndSend: async () => 'y' }, origins: [] });
+    expect(await (await up.request('/badge')).json()).toMatchObject({ schemaVersion: 1, message: 'up', color: 'brightgreen' });
+    const down = createApp({ kora: { payer: async () => Promise.reject(new Error('no')), signAndSend: async () => 'y' }, origins: [] });
+    expect(await (await down.request('/badge')).json()).toMatchObject({ message: 'fee relayer down', color: 'red' });
+  });
+});
