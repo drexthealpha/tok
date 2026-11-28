@@ -25,6 +25,7 @@ import {
   checkAllowed,
   depositInstruction,
   DEVNET_CHAIN_ID,
+  formatAmount,
   makePayLink,
   newClaimSeed,
   parseAmount,
@@ -78,8 +79,8 @@ export function mountActions(app: Hono, d: ActionDeps) {
         label: 'Pay',
         links: {
           actions: [
+            { type: 'transaction', label: '0.01 USDC', href: '/api/actions/pay?amount=0.01' },
             { type: 'transaction', label: '1 USDC', href: '/api/actions/pay?amount=1' },
-            { type: 'transaction', label: '5 USDC', href: '/api/actions/pay?amount=5' },
             {
               type: 'transaction',
               label: 'Pay',
@@ -123,7 +124,14 @@ export function mountActions(app: Hono, d: ActionDeps) {
     );
     let transaction: string = getBase64EncodedWireTransaction(compileTransaction(msg));
     // The makers' fee payer signs first, so a wallet with no SOL can send it.
-    if (d.kora.sign) transaction = await d.kora.sign(transaction);
+    // The fee payer simulates first and refuses a deposit the wallet cannot cover.
+    if (d.kora.sign) {
+      try {
+        transaction = await d.kora.sign(transaction);
+      } catch {
+        return c.json({ message: `Not sent: this wallet may hold less than ${formatAmount(amount)} USDC` }, 422, ACTION_HEADERS);
+      }
+    }
     const link = makePayLink(d.site, { kind: 'plain', seed });
     return c.json({ type: 'transaction', transaction, message: `Paid into a link. Send it: ${link}` }, 200, ACTION_HEADERS);
   });
@@ -147,7 +155,11 @@ export function mountActions(app: Hono, d: ActionDeps) {
     const u = href ? new URL(href) : null;
     if (!u || !publicHost(u) || !account || !isAddress(account)) throw new Refused('Bad request');
     const r = await f(u, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ account }) }).catch(() => null);
-    if (!r?.ok) throw new Refused('The Action did not answer');
+    if (!r) throw new Refused('The Action did not answer');
+    if (!r.ok) {
+      const e = (await r.json().catch(() => null)) as { message?: string } | null;
+      throw new Refused(typeof e?.message === 'string' ? e.message.slice(0, 200) : 'The Action did not answer');
+    }
     const j = (await r.json()) as { transaction?: string; message?: string };
     if (!j.transaction) throw new Refused('The Action returned no transaction');
     const programs = programsCalled(j.transaction);

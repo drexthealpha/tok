@@ -62,14 +62,20 @@ export function ActionCard({ url }: { url: string }) {
         const b = await post<{ allowed: boolean }>('/action/build', { href: first.href, account });
         setAllowed(b.allowed);
       })
-      .catch(() => setAllowed(false));
+      .catch((e) => {
+        setAllowed(false);
+        setMsg((e as Error).message);
+      });
   }, [url, account]);
 
   if (!meta || allowed === false) {
     return allowed === false ? (
-      <a class="small" href={url.replace(/^solana-action:/, '')} target="_blank" rel="noreferrer">
-        {url}
-      </a>
+      <div class="stack">
+        <a class="small" href={url.replace(/^solana-action:/, '')} target="_blank" rel="noreferrer">
+          {url}
+        </a>
+        {msg && <div class="small">{msg}</div>}
+      </div>
     ) : null;
   }
   if (allowed === null) return <div class="small">…</div>;

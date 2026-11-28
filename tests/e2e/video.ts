@@ -162,7 +162,7 @@ try {
   await mode(a, 'Aa');
   await cap(a, 'A Solana Action becomes buttons in the chat');
   await submit(a, 'solana-action:https://tok-server.onrender.com/api/actions/pay');
-  await b.locator('.card.action button', { hasText: '1 USDC' }).waitFor({ timeout: 90_000 }).catch(() => undefined);
+  await b.locator('.card.action button', { hasText: '0.01 USDC' }).waitFor({ timeout: 90_000 }).catch(() => undefined);
   step('action');
   await pause(b, 3000);
 

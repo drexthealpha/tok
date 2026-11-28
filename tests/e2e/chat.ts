@@ -90,8 +90,8 @@ try {
   // Tok's Action shown as buttons (its programs are all on the allow list).
   await mode(a, 'Aa');
   await submit(a, 'solana-action:https://tok-server.onrender.com/api/actions/pay');
-  await b.locator('.card.action button', { hasText: '1 USDC' }).waitFor({ timeout: 90_000 });
-  await b.locator('.card.action button', { hasText: '1 USDC' }).click();
+  await b.locator('.card.action button', { hasText: '0.01 USDC' }).waitFor({ timeout: 90_000 });
+  await b.locator('.card.action button', { hasText: '0.01 USDC' }).click();
   await waitText(b, 'Paid into a link', 120_000);
   console.log('PASS Action as buttons, paid from the chat');
   console.log('PASS live chat');

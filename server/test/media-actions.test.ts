@@ -101,6 +101,31 @@ describe('Tok as a Solana Action (part 15)', () => {
     expect(readLinkSecret(new URL(link).hash)?.kind).toBe('plain');
     expect((await json(app, '/api/actions/pay?amount=0', { account: user.address })).status).toBe(400);
   });
+
+  it('says the wallet may not hold enough when the fee payer refuses the deposit', async () => {
+    const kora: Kora = {
+      payer: async () => 'ByWbpvCjdgiUdamJ7t47toUMreqapqgPcBfjyTkEcNX2',
+      signAndSend: async () => 'sig',
+      sign: async () => {
+        throw new Error('simulation failed: insufficient funds');
+      },
+    };
+    const app = createApp({
+      kora,
+      origins: ['https://tok.test'],
+      actions: { rpcUrl: 'http://unused', site: SITE, publicUrl: 'https://srv.test', tokenProgram: address('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'), fetchFn: fetch, blockhash: bh },
+    });
+    const user = await generateKeyPairSigner();
+    const p = await json(app as never, '/api/actions/pay?amount=1', { account: user.address });
+    expect(p.status).toBe(422);
+    expect(((await p.json()) as { message: string }).message).toBe('Not sent: this wallet may hold less than 1 USDC');
+    // The chat's build passes that message on instead of a bare error.
+    const f = (async (u: string | URL, init?: RequestInit) => app.request(String(u).replace('https://srv.test', ''), init)) as typeof fetch;
+    const chat = setup(f);
+    const b = await json(chat, '/action/build', { href: 'https://srv.test/api/actions/pay?amount=1', account: user.address });
+    expect(b.status).toBe(400);
+    expect(((await b.json()) as { error: string }).error).toBe('Not sent: this wallet may hold less than 1 USDC');
+  });
 });
 
 describe('Actions in the chat (part 14)', () => {
