@@ -26,10 +26,17 @@ jobs:
         run: solana-verify build --library-name tok_claim --base-image solanafoundation/solana-verifiable-build:4.3.0
       - name: Hash
         run: |
-          solana-verify get-executable-hash target/deploy/tok_claim.so | tee target/deploy/tok_claim.verify-hash
-          sha256sum target/deploy/tok_claim.so
+          mkdir -p out
+          sudo cp target/deploy/tok_claim.so out/
+          sudo chown -R "$(id -u)" out
+          solana-verify get-executable-hash out/tok_claim.so | tee out/tok_claim.verify-hash
+          echo "commit ${GITHUB_SHA}" >> out/tok_claim.verify-hash
+      - name: Compare with the program on devnet
+        run: |
+          solana-verify get-program-hash -u https://api.devnet.solana.com 2pZCUFv63kde6rkaAaZ3GGhUu4u4jzM8kBcyshZ9qauH | tee out/devnet-hash
+          test "$(head -1 out/tok_claim.verify-hash)" = "$(cat out/devnet-hash)" && echo "MATCH: devnet program equals this build"
       - uses: actions/upload-artifact@v4
         with:
           name: tok-claim-verifiable
-          path: target/deploy/tok_claim.*
+          path: out/
 
