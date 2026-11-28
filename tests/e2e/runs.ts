@@ -41,6 +41,11 @@ try {
     await waitText(b, 'Received');
     const runsB = (await b.evaluate(() => JSON.parse(localStorage.getItem('tok.runs') ?? '[]'))) as { kind: string; ms: number; signature: string }[];
     const c = runsB.filter((r) => r.kind === 'claim').at(-1)!;
+    // Not timed: hand the USDC back to the makers' test wallet for the next run.
+    await b.goto(SITE + 'w');
+    await b.locator('input[placeholder^="Solana address"]').fill('5MzwkLVBQSTyzJDRXivdGyMPFkHoe7P2PpLnPZnsHrTb');
+    await b.getByRole('button', { name: 'Move', exact: true }).click();
+    await waitText(b, 'Moved', 60_000).catch(() => console.log(`run ${i + 1}: hand-back did not finish`));
     await b.context().close();
     pay.push(p.ms);
     claim.push(c.ms);

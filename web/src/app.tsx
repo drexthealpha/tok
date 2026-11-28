@@ -60,7 +60,10 @@ export function App() {
       {counter.visible && <div class="counter" aria-live="polite">{count} actions</div>}
       <div class="top">
         <span class="brand">Tok</span>
-        <span class="net">devnet, test money</span>
+        <span class="row-gap">
+          <a class="src" href="https://github.com/drexthealpha/tok">Source</a>
+          <span class="net">devnet, test money</span>
+        </span>
       </div>
       {route === 'pay' && <PayScreen />}
       {route === 'claim' && <ClaimScreen />}

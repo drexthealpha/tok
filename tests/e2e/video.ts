@@ -76,7 +76,7 @@ try {
   await a.getByRole('button', { name: 'Make my wallet' }).click();
   await a.locator('a.mono').first().waitFor({ timeout: 120_000 });
   const wa = (await a.locator('a.mono').first().textContent())!.trim();
-  await fund(wa as never, 2_000_000n);
+  await fund(wa as never, 80_000n);
   const recStart = Date.now();
   const marks: number[] = [];
   const mark = () => marks.push((Date.now() - recStart) / 1000);
@@ -99,7 +99,7 @@ try {
   mark();
   await cap(a, 'Phone A: type an amount, tap Pay, confirm with the passkey');
   await cap(b, 'Phone B: waiting for the link');
-  await a.getByLabel('Amount in USDC').fill('1');
+  await a.getByLabel('Amount in USDC').fill('0.05');
   await pause(a, 2500);
   await a.getByRole('button', { name: 'Pay', exact: true }).click();
   await see(a, 'Paid into a link');
@@ -112,7 +112,7 @@ try {
   mark();
   await b.goto(link + '');
   await cap(b, 'Phone B: tap the link, then Receive, and confirm');
-  await see(b, '1 USDC', 60_000);
+  await see(b, '0.05 USDC', 60_000);
   await pause(b, 2500);
   await b.getByRole('button', { name: /Receive/ }).click();
   await cap(b, 'Claiming on devnet');
@@ -138,16 +138,16 @@ try {
   await see(a, 'Thanks!', 30_000);
   step('message');
   await mode(a, 'Request');
-  await cap(a, 'Request 0.50');
-  await submit(a, '0.5');
+  await cap(a, 'Request 0.01');
+  await submit(a, '0.01');
   await b.locator('.bubble button', { hasText: 'Pay' }).first().waitFor({ timeout: 30_000 });
   await cap(b, 'Pay the request from its bubble');
   await b.locator('.bubble button', { hasText: 'Pay' }).first().click();
   await see(a, 'Paid ·', 120_000).catch(() => undefined);
   step('request paid');
   await mode(a, 'Split');
-  await cap(a, 'Split 1 USDC: one share per member');
-  await submit(a, '1');
+  await cap(a, 'Split 0.02 USDC: one share per member');
+  await submit(a, '0.02');
   if (wav) {
     await mode(b, 'Aa');
     const mic = b.locator('.composer button[aria-label="Voice message"]');
@@ -171,7 +171,7 @@ try {
   await a.goto(SITE + '?count');
   step('chat');
   await cap(a, 'Cancel a second link before it is claimed');
-  await a.getByLabel('Amount in USDC').fill('0.25');
+  await a.getByLabel('Amount in USDC').fill('0.01');
   await pause(a, 1500);
   await a.getByRole('button', { name: 'Pay', exact: true }).click();
   await see(a, 'Paid into a link');
@@ -181,7 +181,7 @@ try {
   step('cancel');
   // Send back: B receives a small link and returns it to the sender.
   await a.goto(SITE);
-  await a.getByLabel('Amount in USDC').fill('0.2');
+  await a.getByLabel('Amount in USDC').fill('0.01');
   await a.getByRole('button', { name: 'Pay', exact: true }).click();
   await see(a, 'Paid into a link');
   const small = (await a.locator('.card.mono').textContent())!.trim();
@@ -194,14 +194,14 @@ try {
   step('send back');
   await b.goto(SITE + 'w');
   await cap(b, 'Move to my wallet: any Solana address, for example Solflare');
-  await b.locator('input[placeholder^="Solana address"]').fill('9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM');
-  await b.locator('input[inputmode=decimal]').fill('0.1');
+  await b.locator('input[placeholder^="Solana address"]').fill('5MzwkLVBQSTyzJDRXivdGyMPFkHoe7P2PpLnPZnsHrTb');
+  await b.locator('input[inputmode=decimal]').fill('0.01');
   await b.getByRole('button', { name: 'Move' }).click();
   await see(b, 'Moved', 60_000).catch(() => undefined);
   step('move');
   await cap(a, 'Merchant view: a Solana Pay request, found by its reference, refunded to the payer');
   await a.goto(SITE + 'shop');
-  await a.getByLabel('Amount to charge').fill('0.2');
+  await a.getByLabel('Amount to charge').fill('0.01');
   await a.getByRole('button', { name: 'Charge' }).click();
   const tokPay = (await a.locator('.mono').first().textContent())!.trim();
   await b.goto(tokPay);
@@ -221,6 +221,14 @@ try {
   await pause(a, 6000);
   mark();
   console.log(`recorded ${((Date.now() - recStart) / 1000).toFixed(0)} s of demo (${at()} total)`);
+  // After the last frame: both phones send what they hold back to the makers'
+  // test wallet, so the next run can use the same devnet USDC.
+  for (const p of [a, b]) {
+    await p.goto(SITE + 'w');
+    await p.locator('input[placeholder^="Solana address"]').fill('5MzwkLVBQSTyzJDRXivdGyMPFkHoe7P2PpLnPZnsHrTb').catch(() => undefined);
+    await p.getByRole('button', { name: 'Move', exact: true }).click().catch(() => undefined);
+    await see(p, 'Moved', 60_000).catch(() => console.log('hand-back did not finish on one phone'));
+  }
   const skip = (recStart - ctxStart) / 1000;
   await a.context().close();
   await b.context().close();
