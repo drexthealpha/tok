@@ -63,9 +63,13 @@ const browser = await chromium.launch({
 });
 const t0 = Date.now();
 const at = () => `${((Date.now() - t0) / 1000).toFixed(0)} s`;
+let pages: Page[] = [];
+process.on('unhandledRejection', () => undefined);
 try {
+  const ctxStart = Date.now();
   const a = await phone(browser, 'A', 'a');
   const b = await phone(browser, 'B', 'b');
+  pages = [a, b];
 
   // Before the cut: A's wallet exists and holds devnet USDC from the faucet.
   await a.goto(SITE + 'w');
@@ -74,6 +78,9 @@ try {
   const wa = (await a.locator('a.mono').first().textContent())!.trim();
   await fund(wa as never, 5_000_000n);
   const recStart = Date.now();
+  const marks: number[] = [];
+  const mark = () => marks.push((Date.now() - recStart) / 1000);
+  mark();
 
   // 0:00 to 0:15 the one line.
   await a.goto(SITE + '?count');
@@ -83,6 +90,7 @@ try {
   await pause(a, 12000);
 
   // 0:15 to 1:00: A pays.
+  mark();
   await cap(a, 'Phone A: type an amount, tap Pay, confirm with the passkey');
   await cap(b, 'Phone B: waiting for the link');
   await a.getByLabel('Amount in USDC').fill('2');
@@ -94,6 +102,7 @@ try {
   await pause(a, 8000);
 
   // 1:00 to 1:35: B receives.
+  mark();
   await b.goto(link + '');
   await cap(b, 'Phone B: tap the link, then Receive, and confirm');
   await see(b, '2 USDC', 60_000);
@@ -107,12 +116,13 @@ try {
   void wbLink;
 
   // 1:35 to 2:15: the chat.
+  mark();
   await b.getByRole('button', { name: 'Chat with the sender' }).click();
   await cap(b, 'Tok chat (Supabase): pay, request, split, voice, previews, Actions');
   await b.locator('.composer').waitFor({ timeout: 60_000 });
   await a.goto(SITE + 'chat');
   await cap(a, 'Same chat on phone A');
-  await a.locator('.list > div').first().click();
+  await a.locator('.list > div', { hasText: '›' }).first().click({ timeout: 60_000 });
   await a.locator('.composer').waitFor({ timeout: 60_000 });
   await submit(b, 'Thanks! https://solana.com');
   await see(a, 'Thanks!', 30_000);
@@ -143,6 +153,7 @@ try {
   await pause(b, 3000);
 
   // 2:15 to 2:35: cancel, send back, merchant refund, move to wallet.
+  mark();
   await a.goto(SITE + '?count');
   await cap(a, 'Cancel a second link before it is claimed');
   await a.getByLabel('Amount in USDC').fill('0.25');
@@ -170,22 +181,49 @@ try {
   await see(a, 'Refunded', 120_000).catch(() => undefined);
 
   // 2:35 to 2:50: closing.
+  mark();
   await cap(a, 'Open source (MIT). Claim program on devnet: 2pZCUF...qauH');
   await cap(b, 'github.com/drexthealpha/tok');
   await pause(a, 6000);
+  mark();
   console.log(`recorded ${((Date.now() - recStart) / 1000).toFixed(0)} s of demo (${at()} total)`);
-  const skip = (recStart - t0) / 1000;
+  const skip = (recStart - ctxStart) / 1000;
   await a.context().close();
   await b.context().close();
   const va = join(dir, 'a', readdirSync(join(dir, 'a'))[0]!);
   const vb = join(dir, 'b', readdirSync(join(dir, 'b'))[0]!);
-  // Side by side on a 1280x720 canvas, from the start of the demo, cut at 2:50.
+  // Each section of the design's script gets its slot. Real devnet waits make
+  // some sections longer than their slot: those play faster, and the video
+  // says so on screen ("2.4x speed"). Nothing is cut out.
+  const slots = [15, 45, 35, 40, 20, 15];
+  const parts: string[] = [];
+  const labels: string[] = [];
+  for (let i = 0; i < slots.length; i++) {
+    const s = skip + marks[i]!;
+    const e = skip + marks[i + 1]!;
+    const f = Math.max(1, (e - s) / slots[i]!);
+    const label = f > 1.05 ? `${f.toFixed(1)}x speed` : 'real time';
+    labels.push(`${slots[i]} s slot: ${label}`);
+    for (const [k, inp] of ['0', '1'].entries()) {
+      parts.push(`[${inp}:v]trim=start=${s.toFixed(2)}:end=${e.toFixed(2)},setpts=(PTS-STARTPTS)/${f.toFixed(4)}[${k ? 'b' : 'a'}${i}]`);
+    }
+    parts.push(
+      `[a${i}][b${i}]hstack=inputs=2,pad=1280:720:(ow-iw)/2:0:color=0x0b0d10,drawtext=fontfile='C\\:/Windows/Fonts/arial.ttf':text='${label}':x=w-tw-24:y=24:fontsize=24:fontcolor=0x9aa4b2[s${i}]`,
+    );
+  }
+  const concat = slots.map((_, i) => `[s${i}]`).join('') + `concat=n=${slots.length}:v=1:a=0[v]`;
   execFileSync(ffmpeg as unknown as string, [
-    '-y', '-ss', String(skip), '-i', va, '-ss', String(skip), '-i', vb,
-    '-filter_complex', '[0:v][1:v]hstack=inputs=2[s];color=c=0x0b0d10:s=1280x720[bg];[bg][s]overlay=(W-w)/2:0:shortest=1[v]',
-    '-map', '[v]', '-t', '170', '-r', '30', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-crf', '23', out,
+    '-y', '-i', va, '-i', vb,
+    '-filter_complex', [...parts, concat].join(';'),
+    '-map', '[v]', '-r', '30', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-crf', '23', out,
   ], { stdio: 'inherit' });
+  console.log(labels.join('\n'));
   console.log(`wrote ${out}`);
+} catch (e) {
+  for (const [i, p] of pages.entries()) {
+    console.log(`== screen ${i === 0 ? 'A' : 'B'} (${p.url()}):\n${(await p.locator('#app').innerText().catch(() => '')).slice(0, 800)}`);
+  }
+  throw e;
 } finally {
   await browser.close();
 }
