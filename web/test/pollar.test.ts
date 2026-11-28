@@ -24,6 +24,7 @@ vi.mock('@pollar/core', () => ({
     beginEmailLogin = () => set({ step: 'entering_email' });
     sendEmailCode = () => setTimeout(() => set({ step: 'entering_code' }), 5);
     verifyEmailCode = (code: string) => setTimeout(() => set(code === '123456' ? ({ step: 'authenticated', verified: true } as never) : { step: 'error', message: 'Wrong code' } as never), 5);
+    onConfirmationRequest = () => () => undefined;
     getWallets = () => [{ custody: 'internal', chain: 'SOLANA', address: pollarWallet.value, provider: 'email' }];
     sendPayment = async (p: unknown) => {
       sent.push(p);

@@ -90,7 +90,24 @@ export async function sendFromPollar(destination: string, units: bigint): Promis
   await waitFor(c, (s) => s.step === 'authenticated' && s.verified, 30_000).catch(() => {
     throw new Error('Sign in again with your email to send from the Pollar wallet');
   });
-  const out = await c.sendPayment({ chain: 'SOLANA', destination, amount: units.toString(), mint: USDC_MINT });
+  // The Pollar app asks before every signature: Tok shows that question.
+  const asked = new Set<string>();
+  const off = c.onConfirmationRequest((pending) => {
+    for (const p of pending) {
+      if (asked.has(p.id)) continue;
+      asked.add(p.id);
+      const usdc = (Number(units) / 1e6).toFixed(2);
+      const yes = typeof window === 'undefined' || window.confirm(`Send ${usdc} USDC to ${destination.slice(0, 4)}…${destination.slice(-4)}? Pollar pays the fee.`);
+      if (yes) p.confirm();
+      else p.reject();
+    }
+  });
+  let out;
+  try {
+    out = await c.sendPayment({ chain: 'SOLANA', destination, amount: units.toString(), mint: USDC_MINT });
+  } finally {
+    off();
+  }
   if (out.status === 'success' || out.status === 'pending') return out.hash;
   if (out.status === 'error') {
     throw new Error(`Pollar did not send: ${[out.code, out.message, out.details].filter(Boolean).join(': ') || 'error'}`);
