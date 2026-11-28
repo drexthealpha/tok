@@ -1,6 +1,6 @@
-FROM ghcr.io/solana-foundation/kora:v3.0.0 AS kora
+FROM ghcr.io/solana-foundation/kora:v3.0.0@sha256:8bd1e7ad3ad8d3cc60db6c11e13597d0cfda6351d40a6324b9d80ee85433ee87 AS kora
 
-FROM node:22-bookworm-slim
+FROM node:22-bookworm-slim@sha256:be979e5523c76fa4d5ca4ebd3099078f220aa47ec39c48ad5b5df9314debd6eb
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && rm -rf /var/lib/apt/lists/* \
   && corepack enable
 COPY --from=kora /usr/local/bin/kora /usr/local/bin/kora

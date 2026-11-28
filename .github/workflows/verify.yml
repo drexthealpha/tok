@@ -14,8 +14,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 40
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/cache@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         id: sv
         with:
           path: ~/.cargo/bin/solana-verify
@@ -35,7 +35,7 @@ jobs:
         run: |
           solana-verify get-program-hash -u https://api.devnet.solana.com 2pZCUFv63kde6rkaAaZ3GGhUu4u4jzM8kBcyshZ9qauH | tee out/devnet-hash
           test "$(head -1 out/tok_claim.verify-hash)" = "$(cat out/devnet-hash)" && echo "MATCH: devnet program equals this build"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: tok-claim-verifiable
           path: out/

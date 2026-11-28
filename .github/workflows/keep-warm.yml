@@ -1,0 +1,23 @@
+name: keep the live demo awake
+
+# Render's free plan sleeps after 15 idle minutes. Judges check the live
+# demo through Tue 1 Dec 2026, so ping the server and the page every 10 minutes.
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Server, Kora and the page
+        run: |
+          curl -fsS -m 90 https://tok-server.onrender.com/health
+          curl -fsS -m 60 https://tok-server.onrender.com/config > /dev/null
+          curl -fsS -m 30 -o /dev/null https://drexthealpha.github.io/tok/
+          echo "awake at $(date -u)"
