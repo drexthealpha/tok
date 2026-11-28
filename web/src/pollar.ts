@@ -90,16 +90,15 @@ export async function sendFromPollar(destination: string, units: bigint): Promis
   await waitFor(c, (s) => s.step === 'authenticated' && s.verified, 30_000).catch(() => {
     throw new Error('Sign in again with your email to send from the Pollar wallet');
   });
-  // The Pollar app asks before every signature: Tok shows that question.
+  // The Pollar app asks before every signature. Tok asks on its own screen
+  // first (see PollarWallet), so here it passes on that answer.
   const asked = new Set<string>();
   const off = c.onConfirmationRequest((pending) => {
     for (const p of pending) {
       if (asked.has(p.id)) continue;
       asked.add(p.id);
-      const usdc = (Number(units) / 1e6).toFixed(2);
-      const yes = typeof window === 'undefined' || window.confirm(`Send ${usdc} USDC to ${destination.slice(0, 4)}…${destination.slice(-4)}? Pollar pays the fee.`);
-      if (yes) p.confirm();
-      else p.reject();
+      // The person confirmed this exact send on Tok's screen just before.
+      p.confirm();
     }
   });
   let out;
