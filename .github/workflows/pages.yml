@@ -33,6 +33,23 @@ jobs:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
           VITE_POLLAR_KEY: ${{ secrets.VITE_POLLAR_KEY }}
+      # Browsers and the CDN keep the old HTML for up to 10 minutes; keep the
+      # files it points to, so a cached page never loses its script.
+      - name: Keep the previous deploy's assets
+        run: |
+          for page in "" c/ w/ chat/ shop/; do
+            curl -fsS -m 30 "https://drexthealpha.github.io/tok/$page" || true
+          done | grep -oE 'assets/[A-Za-z0-9_.-]+\.(js|css)' | sort -u > old-assets.txt || true
+          for f in $(cat old-assets.txt); do
+            test -f "web/dist/$f" || curl -fsS -m 30 -o "web/dist/$f" "https://drexthealpha.github.io/tok/$f" || true
+          done
+          # Lazy chunks that the old entry script imports.
+          for js in $(grep '\.js$' old-assets.txt); do
+            grep -oE 'assets/[A-Za-z0-9_.-]+\.js|"\./[A-Za-z0-9_.-]+\.js"' "web/dist/$js" 2>/dev/null | tr -d '"' | sed 's#^\./#assets/#'
+          done | sort -u | while read -r f; do
+            test -f "web/dist/$f" || curl -fsS -m 30 -o "web/dist/$f" "https://drexthealpha.github.io/tok/$f" || true
+          done
+          ls web/dist/assets | wc -l
       - uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3
         with: { path: web/dist }
       - id: first
